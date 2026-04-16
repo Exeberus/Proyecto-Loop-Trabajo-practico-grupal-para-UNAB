@@ -1,0 +1,2 @@
+Funciones de Loop : 
+- Registro/Login de Usuario - Soporte Técnico | Recuperación de contraseña por Mail | Bloquear inicio de sesión al equivocarse 5 vece
