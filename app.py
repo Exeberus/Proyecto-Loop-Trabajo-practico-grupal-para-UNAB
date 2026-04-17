@@ -5,9 +5,9 @@ app = Flask(__name__)
 
 app.register_blueprint(users_bp)
 
-@app.route("/api/test")
+@app.route("/api/users")
 def test():
-    return {"message": "Backend funcionando"}
+    return {"message": "Hola desde Flask!"}
 
 if __name__ == "__main__":
     app.run(debug=True)

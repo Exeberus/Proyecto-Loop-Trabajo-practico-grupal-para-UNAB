@@ -7,6 +7,7 @@ from database.db import get_db ## Importar la función get_db para obtener una c
 
 db = get_db()
 
+# Crear tabla
 db.execute("""
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
