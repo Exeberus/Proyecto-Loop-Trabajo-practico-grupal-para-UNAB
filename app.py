@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 app.register_blueprint(users_bp)
 
-@app.route("/api/users")
+@app.route("/")
 def test():
     return {"message": "Hola desde Flask!"}
 
