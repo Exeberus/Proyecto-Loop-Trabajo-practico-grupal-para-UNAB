@@ -1,11 +1,29 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Inicio">
+  <section class="text-center py-16 px-4">
+    <h1 class="text-4xl md:text-5xl font-black text-blue-600 mb-6 tracking-tight">
+      ¿Qué materia querés aprobar?
+    </h1>
+    <div class="max-w-xl mx-auto mb-4 relative">
+      <input 
+        type="text" 
+        placeholder="Buscar materia (ej: Programación, Matemática)..." 
+        class="w-full bg-gray-100 border border-gray-200 px-6 py-4 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+      />
+    </div>
+  </section>
+
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto px-6 mb-16">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-8 rounded-[2rem] shadow-md flex flex-col justify-between min-h-[220px]">
+      <p class="text-xl font-bold max-w-xs">Sacate esa materia que tanto te cuesta de encima, con profes que ya la aprobaron.</p>
+      <a href="/profesores" class="bg-black/20 text-white font-bold text-xs px-4 py-2 rounded-full self-start hover:bg-black/30 transition">VER PROFES</a>
+    </div>
+    <div class="bg-slate-800 text-white p-8 rounded-[2rem] shadow-md flex flex-col justify-between min-h-[220px] bg-cover bg-center" style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80')">
+      <p class="text-xl font-bold max-w-xs">¿Querés ganar Tokens como profesor?</p>
+      <a href="/registro-profe" class="bg-blue-600 text-white font-bold text-xs px-4 py-2 rounded-full self-start hover:bg-blue-700 transition">DA CLASES!</a>
+    </div>
+  </section>
 </Layout>

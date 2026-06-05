@@ -1,0 +1,48 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Iniciar Sesión">
+  <div class="relative w-full max-w-6xl mx-auto min-h-[calc(100vh-160px)] flex flex-col md:flex-row items-center justify-between px-6 py-12 gap-12">
+    
+    <div class="absolute left-1/2 top-1/2 -translate-x-1/4 -translate-y-1/2 w-[450px] h-[450px] rounded-full bg-teal-300/80 -z-10"></div>
+
+    <div class="w-full md:w-1/2 flex flex-col">
+      <h1 class="text-5xl md:text-6xl font-bold text-blue-600 tracking-tight leading-tight mb-20">
+        Registrate para<br/>recibir tus<br/>primeros <span class="text-slate-900">Tokens</span>
+      </h1>
+      <a href="/registro-profe" class="text-xs font-bold text-blue-600 underline hover:text-blue-700 transition uppercase tracking-wide">
+        CAMBIAR A PROFE
+      </a>
+    </div>
+
+    <div class="w-full md:w-1/2 flex justify-end relative z-10">
+      <div class="w-full max-w-md bg-white/95 backdrop-blur-sm rounded-[2.5rem] p-8 md:p-10 shadow-2xl border border-gray-100">
+        <form class="space-y-5">
+          <div>
+            <label class="block text-sm font-bold text-slate-800 mb-2">Nombre</label>
+            <input type="text" required class="w-full bg-transparent border border-gray-200 px-5 py-3.5 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-800 mb-2">Email</label>
+            <input type="email" required class="w-full bg-transparent border border-gray-200 px-5 py-3.5 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-800 mb-2">Contraseña</label>
+            <input type="password" required class="w-full bg-transparent border border-gray-200 px-5 py-3.5 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          
+          <div class="flex flex-row items-center justify-between pt-6">
+            <a href="#" class="text-[10px] font-bold text-blue-600 underline hover:text-blue-700 transition">
+              FOTO DE PERFIL <span class="text-gray-400 font-normal no-underline ml-1">Opcional</span>
+            </a>
+            <button type="submit" class="bg-blue-600 text-white font-bold text-xs px-8 py-3.5 rounded-full hover:bg-blue-700 transition shadow-md">
+              CONTINUAR
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</Layout>
