@@ -1,6 +1,9 @@
-import sqlite3
+import sqlite3; import os
 from flask_cors import CORS
 from flask import Flask, render_template, request, session, jsonify
+
+from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
 app.secret_key = '0f2e4c18ca9ae37290cad43b86fad8f65aad8cf682561b0b3a0650c80737df45'
@@ -15,45 +18,68 @@ def test():
         "message": "Backend funcionando"
     })
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "database.db")
+
 def get_db():
-    conn = sqlite3.connect("database.db")
-    return conn
+    print("BD ABIERTA:", DB_PATH)
+    return sqlite3.connect(DB_PATH)
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
 
-    error = None
+    errors = []
     
     if request.method == "POST":
 
         username = request.form["username"]
+        email = request.form["email"]
         password = request.form["password"]
 
         if len(username) < 3:
-            error = "El usuario debe tener al menos 3 caracteres"
+            errors.append("El usuario debe tener al menos 3 caracteres ")
     
-        elif len (password) < 6:
-            error = "La contraseña debe tener al menos 6 caracteres"
+        if len (password) < 6:
+            errors.append("La contraseña debe tener al menos 6 caracteres ")
 
-        elif " " in username:
-            error = "El usuario no puede tener espacios"
+        if " " in username:
+            errors.append("El usuario no puede tener espacios ")
 
-        else:
+        if "@" not in email:
+            errors.append("Email inválido ")
+
+        if len(errors) == 0:
 
             conn = get_db()
             cursor = conn.cursor()
 
+            print("CARPETA ACTUAL FLASK:", os.getcwd())
+            print("EXISTE DB:", os.path.exists("database.db"))
+
+            cursor.execute("""
+            SELECT name FROM sqlite_master
+            WHERE type='table'
+            """)
+
+            print("TABLAS EN REGISTER:", cursor.fetchall())
+
+            cursor.execute("SELECT * FROM users")
+            print("SELECT USERS FUNCIONA")
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            password_hash = generate_password_hash(password)
+
             cursor.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
-                (username, password)
+                "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+                (username, email, password_hash)
             )
 
             conn.commit()
             conn.close()
 
-            return "Usuario registrado correctamente"
-
-    return render_template("register.html")
+    return render_template("register.html", errors=errors)
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
@@ -63,17 +89,17 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        conn = sqlite3.connect("database.db")
+        conn = get_db()
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT * FROM users WHERE username=? AND password=?",
-            (username, password)
+            "SELECT * FROM users WHERE username=?",
+            (username,)
         )
 
         user = cursor.fetchone()
 
-        if user:
+        if user and check_password_hash(user[3], password):
             session["user"] = username
             return "Login correcto"
         else:

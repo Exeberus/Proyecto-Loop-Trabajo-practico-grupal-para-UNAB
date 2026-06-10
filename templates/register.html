@@ -7,13 +7,18 @@
 </head>
 <body>
     <h1>Registro</h1>
-
-    {% if error %}
-        <p> style="coler:red;">{{ error }}</p>
+    {% if errors %}
+        <ul>
+            {% for error in errors %}
+                <li style="color:red;">{{ error }}</li>
+            {% endfor %}
+        </ul>
     {% endif %}
 
     <form method="POST">
         <input type="text" name="username" placeholder="Usuario">
+        
+        <input type="email" name="email" placeholder="Email">
 
         <input type="password" name="password" placeholder="Contraseña">
 
