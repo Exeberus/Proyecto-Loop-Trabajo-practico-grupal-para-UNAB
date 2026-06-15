@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Bienvenido a Loop</h1>
+
+    <p>
+
+        No tienes una cuenta?
+        
+        <a href="{{ url_for('register') }}"> Registrate Aqui</a>
+        
+        <br>
+
+        Ya tienes una cuenta?
+
+        <a href="{{ url_for('login') }}"> Inicia sesión Aqui</a>
+
+        {% if is_logued %}
+
+            <h1>Hola</h1>
+
+        {% endif %}
+    </p>
+</body>
+</html>

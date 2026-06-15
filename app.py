@@ -1,6 +1,6 @@
 import sqlite3; import os
 from flask_cors import CORS
-from flask import Flask, render_template, request, session, jsonify
+from flask import Flask, render_template, request, session, jsonify, url_for, redirect, flash
 
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
@@ -25,49 +25,70 @@ def get_db():
     print("BD ABIERTA:", DB_PATH)
     return sqlite3.connect(DB_PATH)
 
+@app.route('/')
+def main_page():
+
+    is_logued = None
+ 
+    if "user" in session:
+        is_logued = True
+
+    return render_template("main_page.html", is_logued=is_logued)
+
 @app.route('/register', methods=["GET", "POST"])
 def register():
 
     errors = []
+    special_chars = "!@#$%^&*()-_=+[]{};:,.<>?/\\|" ## Caracteres especiales
     
     if request.method == "POST":
 
         username = request.form["username"]
         email = request.form["email"]
         password = request.form["password"]
+        password_confirm = request.form["password_confirm"]
 
         if len(username) < 3:
             errors.append("El usuario debe tener al menos 3 caracteres ")
     
-        if len (password) < 6:
-            errors.append("La contraseña debe tener al menos 6 caracteres ")
+        if len(password) < 8:
+            errors.append("La contraseña debe tener al menos 8 caracteres ")
+        
+        if not any (char in special_chars for char in password): 
+            errors.append("La contraseña debe tener al menos uno de estos carácteres especiales: !@#$%^&*()-_=+[]{};:,.<>?/\\| ")
+        
+        if not any(char.isdigit() for char in password):
+            errors.append("La contraseña debe tener al menos un número")
+
+        if password_confirm != password:
+            errors.append("Las contraseñas no coinciden")
 
         if " " in username:
             errors.append("El usuario no puede tener espacios ")
 
         if "@" not in email:
             errors.append("Email inválido ")
+        
+        conn = get_db()
+        cursor = conn.cursor()
 
-        if len(errors) == 0:
+        cursor.execute(
+            "SELECT id FROM users WHERE username = ?",
+            (username,)
+        )
 
-            conn = get_db()
-            cursor = conn.cursor()
+        if cursor.fetchone():
+            errors.append("Este nombre de Usuario ya está registrado")
 
-            print("CARPETA ACTUAL FLASK:", os.getcwd())
-            print("EXISTE DB:", os.path.exists("database.db"))
+        cursor.execute(
+            "SELECT id FROM users WHERE email = ?",
+            (email,)
+        )
+            
+        if cursor.fetchone():
+            errors.append("Este Email ya está registrado")
 
-            cursor.execute("""
-            SELECT name FROM sqlite_master
-            WHERE type='table'
-            """)
-
-            print("TABLAS EN REGISTER:", cursor.fetchall())
-
-            cursor.execute("SELECT * FROM users")
-            print("SELECT USERS FUNCIONA")
-
-            conn = get_db()
-            cursor = conn.cursor()
+        if not errors:
 
             password_hash = generate_password_hash(password)
 
@@ -77,50 +98,72 @@ def register():
             )
 
             conn.commit()
+
+            flash("Cuenta creada correctamente. Porfavor inicie sesión.", "success")
+
             conn.close()
+            
+            return redirect(url_for("login"))
+        
+        conn.close()
 
     return render_template("register.html", errors=errors)
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
     
+    error = None
+
     if request.method == "POST":
-        print("ENTRÓ AL POST")
-        username = request.form["username"]
+
+        login_input = request.form["login"]
         password = request.form["password"]
 
         conn = get_db()
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT * FROM users WHERE username=?",
-            (username,)
+            """
+            SELECT * FROM users
+            WHERE username = ? OR email = ?
+            """,
+            (login_input, login_input)
         )
 
         user = cursor.fetchone()
 
         if user and check_password_hash(user[3], password):
-            session["user"] = username
-            return "Login correcto"
+            session["user"] = user[1]
+            return redirect(url_for("dashboard"))
         else:
-            return "Usuario o contraseña incorrectos"
+            error = "Usuario, Email o contraseña incorrectos"
         
-    return render_template("login.html")
+    return render_template("login.html", error=error)
 
 @app.route("/dashboard")
 def dashboard():
 
-    if "user" in session:
-        return f"Bienvenido {session['user']}"
-    else:
-        return "No estás logueado"
+    if "user" not in session:
+
+        flash("Debes iniciar sesión para acceder al dashboard.", "error")
+
+        return redirect(url_for("login"))
+    
+    return "Dashboard"
     
 @app.route("/logout")
 def logout():
 
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    username = session.get("user")
+
     session.pop("user", None)
 
-    return "Sesión cerrada"
+    flash(f"Has cerrado la sesión de {username} correctamente", "success")
+
+    return redirect(url_for("login"))
 
 ## Modo de Depuración
 if __name__ == '__main__': 
