@@ -1,35 +1,93 @@
-from backend.extensions import db
-
-from backend.models.conversation import Conversation
-from backend.models.message import Message
+import sqlite3
+import os
 
 
-def create_conversation(user1_id, user2_id):
+BASE_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
+)
 
-    existing = Conversation.query.filter(
+DB_PATH = os.path.join(
+    BASE_DIR,
+    "database.db"
+)
+
+
+def get_db():
+
+    return sqlite3.connect(DB_PATH)
+
+
+def create_conversation(
+    user1_id,
+    user2_id
+):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM conversations
+        WHERE
         (
-            (Conversation.user1_id == user1_id) &
-            (Conversation.user2_id == user2_id)
-        ) |
-        (
-            (Conversation.user1_id == user2_id) &
-            (Conversation.user2_id == user1_id)
+            user1_id = ?
+            AND user2_id = ?
         )
-    ).first()
-
-    if existing:
-        return existing
-
-    conversation = Conversation(
-        user1_id=user1_id,
-        user2_id=user2_id
+        OR
+        (
+            user1_id = ?
+            AND user2_id = ?
+        )
+        """,
+        (
+            user1_id,
+            user2_id,
+            user2_id,
+            user1_id
+        )
     )
 
-    db.session.add(conversation)
+    existing = cursor.fetchone()
 
-    db.session.commit()
+    if existing:
 
-    return conversation
+        conn.close()
+
+        return {
+            "id": existing[0]
+        }
+
+    cursor.execute(
+        """
+        INSERT INTO conversations
+        (
+            user1_id,
+            user2_id
+        )
+        VALUES
+        (
+            ?,
+            ?
+        )
+        """,
+        (
+            user1_id,
+            user2_id
+        )
+    )
+
+    conn.commit()
+
+    conversation_id = cursor.lastrowid
+
+    conn.close()
+
+    return {
+        "id": conversation_id
+    }
 
 
 def send_message(
@@ -38,37 +96,107 @@ def send_message(
     content
 ):
 
-    message = Message(
-        conversation_id=conversation_id,
-        sender_id=sender_id,
-        content=content
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO messages
+        (
+            conversation_id,
+            sender_id,
+            content
+        )
+        VALUES
+        (
+            ?,
+            ?,
+            ?
+        )
+        """,
+        (
+            conversation_id,
+            sender_id,
+            content
+        )
     )
 
-    db.session.add(message)
+    conn.commit()
 
-    db.session.commit()
+    message_id = cursor.lastrowid
 
-    return message
+    conn.close()
 
-
-def get_messages(conversation_id):
-
-    return Message.query.filter_by(
-        conversation_id=conversation_id
-    ).order_by(
-        Message.created_at.asc()
-    ).all()
+    return {
+        "id": message_id
+    }
 
 
-def mark_as_read(message_id):
+def get_messages(
+    conversation_id
+):
 
-    message = Message.query.get(message_id)
+    conn = get_db()
 
-    if not message:
-        return None
+    conn.row_factory = sqlite3.Row
 
-    message.is_read = True
+    cursor = conn.cursor()
 
-    db.session.commit()
+    cursor.execute(
+        """
+        SELECT *
+        FROM messages
+        WHERE conversation_id = ?
+        ORDER BY created_at ASC
+        """,
+        (
+            conversation_id,
+        )
+    )
 
-    return message
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    messages = []
+
+    for row in rows:
+
+        messages.append({
+            "id": row["id"],
+            "conversation_id": row["conversation_id"],
+            "sender_id": row["sender_id"],
+            "content": row["content"],
+            "is_read": bool(row["is_read"]),
+            "created_at": row["created_at"]
+        })
+
+    return messages
+
+
+def mark_as_read(
+    message_id
+):
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE messages
+        SET is_read = 1
+        WHERE id = ?
+        """,
+        (
+            message_id,
+        )
+    )
+
+    conn.commit()
+
+    updated = cursor.rowcount
+
+    conn.close()
+
+    return updated > 0

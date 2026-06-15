@@ -29,7 +29,7 @@ def create_conversation_route():
 
     return {
         "conversation_id":
-        conversation.id
+        conversation["id"]
     }, 201
 
 
@@ -49,7 +49,7 @@ def send_message_route():
 
     return {
         "message_id":
-        message.id
+        message["id"]
     }, 201
 
 
@@ -61,19 +61,7 @@ def get_messages_route(id):
 
     messages = get_messages(id)
 
-    response = []
-
-    for msg in messages:
-
-        response.append({
-            "id": msg.id,
-            "sender_id": msg.sender_id,
-            "content": msg.content,
-            "is_read": msg.is_read,
-            "created_at": str(msg.created_at)
-        })
-
-    return response
+    return messages
 
 
 @chat_bp.route(
@@ -82,9 +70,9 @@ def get_messages_route(id):
 )
 def read_message(id):
 
-    message = mark_as_read(id)
+    updated = mark_as_read(id)
 
-    if not message:
+    if not updated:
         return {
             "error": "Mensaje no encontrado"
         }, 404
