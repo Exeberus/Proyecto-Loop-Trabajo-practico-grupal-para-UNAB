@@ -1,6 +1,0 @@
-methods=["GET", "POST"]
-
-GET : Recibe datos del Servidor
-POST : Envía datos del Servidor
-
-request.form : Obtiene datos del HTML, ejemplo request.form[username] hace que reciba los datos de username del HTML.
