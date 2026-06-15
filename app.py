@@ -111,8 +111,16 @@ def register():
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
-    
+
     error = None
+
+    attempts = session.get("login_attempts", 0)
+
+    if attempts >= 3:
+
+        error = "Acceso bloqueado. Contacte a soporte: loop.unab@gmail.com"
+
+        return render_template("login.html", error=error)
 
     if request.method == "POST":
 
@@ -132,12 +140,35 @@ def login():
 
         user = cursor.fetchone()
 
+        conn.close()
+
         if user and check_password_hash(user[3], password):
+
             session["user"] = user[1]
+            session["login_attempts"] = 0
+
             return redirect(url_for("dashboard"))
+
         else:
-            error = "Usuario, Email o contraseña incorrectos"
-        
+
+            session["login_attempts"] = session.get("login_attempts", 0) + 1
+
+            remaining = 3 - session["login_attempts"]
+
+            if remaining > 0:
+
+                error = (
+                    f"Usuario, Email o contraseña incorrectos. "
+                    f"Te quedan {remaining} intentos."
+                )
+
+            else:
+
+                error = (
+                    "Acceso bloqueado. "
+                    "Contacte a soporte: soporte@tucorreo.com"
+                )
+
     return render_template("login.html", error=error)
 
 @app.route("/dashboard")
@@ -164,6 +195,13 @@ def logout():
     flash(f"Has cerrado la sesión de {username} correctamente", "success")
 
     return redirect(url_for("login"))
+
+@app.route("/unlock")
+def unlock():
+
+    session["login_attempts"] = 0
+
+    return "Bloqueo eliminado"
 
 ## Modo de Depuración
 if __name__ == '__main__': 
