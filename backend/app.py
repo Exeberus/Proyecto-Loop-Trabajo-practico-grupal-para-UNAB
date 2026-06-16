@@ -6,6 +6,8 @@ from flask import Flask, render_template, request, session, jsonify, url_for, re
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
+
+
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:4321"}})
 app.secret_key = '0f2e4c18ca9ae37290cad43b86fad8f65aad8cf682561b0b3a0650c80737df45'
