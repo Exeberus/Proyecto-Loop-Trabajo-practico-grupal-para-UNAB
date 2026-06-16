@@ -16,8 +16,29 @@ CREATE TABLE IF NOT EXISTS users (
                
     email TEXT NOT NULL UNIQUE,
                
-    password TEXT NOT NULL
-    
+    password TEXT NOT NULL,
+
+    tokens INTEGER NOT NULL DEFAULT 2
+               
+)
+"""
+)
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS ratings (
+               
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+               
+    user_id INTEGER NOT NULL,
+               
+    rater_id INTEGER NOT NULL,
+               
+    stars INTEGER NOT NULL CHECK(stars >= 1 AND stars <= 5),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(rater_id) REFERENCES users(id)
 )
 """
 )

@@ -28,11 +28,11 @@ def get_db():
     print("BD ABIERTA:", DB_PATH)
     return sqlite3.connect(DB_PATH)
 
-@app.route('/')
+@app.route('/', methods=["GET", "POST"])
 def main_page():
-
+    
     is_logued = None
- 
+
     if "user" in session:
         is_logued = True
 
@@ -152,7 +152,11 @@ def dashboard():
 
         return redirect(url_for("login"))
     
-    return "Dashboard"
+    user_id = session["user"]
+
+    rating = get_user_rating(user_id)
+    
+    return render_template("dashboard.html", rating=rating)
     
 @app.route("/logout")
 def logout():
@@ -167,6 +171,65 @@ def logout():
     flash(f"Has cerrado la sesión de {username} correctamente", "success")
 
     return redirect(url_for("login"))
+
+@app.route("/rate", methods=["POST"])
+def rate():
+
+    if "user" not in session:
+        return jsonify({"error": "No logueado"}), 401
+
+    data = request.json
+
+    user_id = data["user_id"]
+    stars = data["stars"]
+
+    rater_id = session["user"]
+
+    if stars < 1 or stars > 5:
+        return jsonify({"error": "Invalid stars"}), 400
+
+    add_rating(user_id, rater_id, stars)
+
+    return jsonify({"message": "Rating enviado"})
+
+def add_rating(user_id, rater_id, stars):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO ratings (user_id, rater_id, stars)
+        VALUES (?, ?, ?)
+    """, (user_id, rater_id, stars))
+
+    conn.commit()
+    conn.close()
+
+def get_user_rating(user_id):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT AVG(stars)
+        FROM ratings
+        WHERE user_id = ?
+    """, (user_id,))
+
+    result = cursor.fetchone()[0]
+
+    conn.close()
+
+    return round(result, 1) if result else 0
+
+@app.route("/profile/<int:user_id>")
+def profile(user_id):
+
+    username, rating = get_user_rating_with_name(user_id)
+
+    return render_template(
+        "profiles.html",
+        username=username,
+        rating=rating
+    )
 
 @app.route("/test-chat")
 def test_chat():
@@ -196,6 +259,29 @@ def test_get_messages():
     from services.chat_service import get_messages
 
     return get_messages(1)
+
+def get_user_rating_with_name(user_id):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT u.username, AVG(r.stars)
+        FROM users u
+        LEFT JOIN ratings r ON u.id = r.user_id
+        WHERE u.id = ?
+        GROUP BY u.id
+    """, (user_id,))
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+        username = result[0]
+        rating = round(result[1], 1) if result[1] else 0
+        return username, rating
+
+    return None, 0
 
 ## Modo de Depuración
 if __name__ == '__main__': 
