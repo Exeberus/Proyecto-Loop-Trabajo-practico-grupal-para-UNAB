@@ -1,0 +1,107 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { profesores } from "../../data/profesores";
+import type { Profesor } from "../../data/profesores";
+
+export function getStaticPaths() {
+  return profesores.map((profe: Profesor) => ({
+    params: { id: String(profe.id) },
+  }));
+}
+
+const idProfesor = Number(Astro.params.id);
+
+const profesor =
+  profesores.find((profe: Profesor) => Number(profe.id) === idProfesor) ??
+  profesores[0];
+---
+
+<Layout title="Perfil del profesor" usuarioLogueado={true}>
+  <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
+    
+    <!-- Decoración de fondo similar al wireframe -->
+    <div class="absolute left-1/2 top-24 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-[#0047ff]"></div>
+    <div class="absolute left-[58%] top-52 -z-0 h-72 w-72 rounded-full bg-teal-300"></div>
+
+    <section class="relative z-10 mx-auto max-w-6xl">
+      
+      <!-- CARD PERFIL -->
+      <article class="rounded-[26px] bg-white p-5 shadow-xl md:p-6">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-[180px_1fr_1.4fr] md:items-center">
+          
+          <!-- FOTO -->
+          <div>
+            <img
+              src={profesor.imagen}
+              alt={`Foto de ${profesor.nombre}`}
+              class="h-48 w-full rounded-[18px] object-cover md:h-44"
+            />
+          </div>
+
+          <!-- DATOS -->
+          <div>
+            <p class="text-sm font-bold text-[#081c44]">
+              Profesor
+            </p>
+
+            <h1 class="mt-1 text-3xl font-extrabold leading-none text-[#0047ff] md:text-4xl">
+              {profesor.nombre}
+            </h1>
+            <p class="mt-2 text-xs font-bold text-red-500">
+  DEBUG - ID URL: {idProfesor} | ID cargado: {profesor.id}
+</p>
+            <p class="mt-2 break-all text-[10px] font-bold uppercase tracking-wide text-[#0047ff]">
+              {profesor.email}
+            </p>
+
+            <div class="mt-5">
+              <p class="mb-2 text-sm font-bold text-[#081c44]">
+                Materias
+              </p>
+
+              <div class="flex flex-wrap gap-2">
+                {profesor.materias.map((materia) => (
+                  <span class="rounded-full border border-[#0047ff] px-3 py-1 text-[9px] font-bold uppercase text-[#0047ff]">
+                    {materia}
+                  </span>
+                ))}
+
+                <span class="rounded-full border border-[#0047ff] px-3 py-1 text-[9px] font-bold uppercase text-[#0047ff]">
+                  ★ {profesor.rating}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DESCRIPCIÓN -->
+          <div class="flex h-full flex-col justify-between gap-5">
+            <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <p class="text-sm font-medium leading-relaxed text-slate-600">
+                {profesor.descripcion}
+              </p>
+            </div>
+
+            <div class="flex justify-end">
+              <a
+                href={`/generar-loop?id=${profesor.id}`}
+                class="rounded-full bg-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-blue-700"
+              >
+                Conectemos
+              </a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- VOLVER -->
+      <div class="mt-6">
+        <a
+          href="/profesores"
+          class="text-[10px] font-bold uppercase tracking-wide text-[#0047ff] underline"
+        >
+          &lt; Volver
+        </a>
+      </div>
+    </section>
+  </main>
+</Layout>

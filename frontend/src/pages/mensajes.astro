@@ -1,0 +1,44 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Loop - Mis Mensajes y Clases">
+  <div class="w-full min-h-[calc(100vh-100px)] bg-[#F5F5F5] pt-12 px-6">
+    <div class="w-full max-w-4xl mx-auto">
+      
+      <h1 class="text-3xl font-bold text-blue-600 mb-8">Centro de Control</h1>
+
+      <div id="lista-clases" class="flex flex-col gap-4">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-800">Programación - Tomás Tagliani</h3>
+            <p class="text-sm text-blue-600 font-medium">Jueves 18 de Junio - 15:00 hs</p>
+          </div>
+          <a href="https://meet.google.com/tu-link-aqui" target="_blank" class="bg-blue-600 text-white text-[10px] font-bold px-6 py-3 rounded-full hover:bg-blue-700 transition uppercase tracking-widest">
+            IR A LA CLASE
+          </a>
+        </div>
+      </div>
+
+      <div id="sin-clases" class="hidden text-center py-20">
+        <p class="text-slate-400 font-medium">No tenés clases activas en este momento.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script is:inline>
+    // Lógica rápida para alternar vistas
+    const reserva = localStorage.getItem('reserva_activa');
+    const lista = document.getElementById('lista-clases');
+    const vacio = document.getElementById('sin-clases');
+
+    if (reserva === 'true') {
+      lista.style.display = 'flex';
+      vacio.style.display = 'none';
+    } else {
+      lista.style.display = 'none';
+      vacio.style.display = 'block';
+    }
+  </script>
+</Layout>

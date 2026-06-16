@@ -2,8 +2,11 @@
 import "../styles/global.css";
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
-const { title } = Astro.props;
+
+// 1. Acá agregamos la variable "usuarioLogueado" (por defecto en false)
+const { title, usuarioLogueado = false } = Astro.props;
 ---
+
 <!doctype html>
 <html lang="es">
   <head>
@@ -14,10 +17,12 @@ const { title } = Astro.props;
     <title>{title} | Loop</title>
   </head>
   <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col justify-between font-sans m-0 p-0">
-
-  <Navbar/>
-    <slot/> 
-  <Footer/>
-
+    
+    <Navbar usuarioLogueado={usuarioLogueado} />
+    
+    <slot />
+    
+    <Footer />
+    
   </body>
 </html>

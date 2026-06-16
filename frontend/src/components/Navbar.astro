@@ -1,13 +1,40 @@
 ---
+import { Image } from 'astro:assets';
+import logoLoop from '../assets/logo.png';
+const { usuarioLogueado = false } = Astro.props;
 ---
-<nav class="w-full bg-white sticky top-0 z-50 shadow-xs">
-  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-    <div class="text-3xl font-black text-blue-600 tracking-tighter">loop</div>
-    <div class="flex items-center gap-6 text-sm font-bold text-gray-600">
-      <a href="/" class="hover:text-blue-600 transition">INICIO</a>
-      <a href="/profesores" class="hover:text-blue-600 transition">MATERIAS</a>
-      <a href="/registro-profe" class="hover:text-blue-600 transition">DAR CLASES</a>
-      <a href="/login" class="bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700 transition shadow-sm">LOG IN</a>
-    </div>
+
+<nav class="w-full max-w-6xl mx-auto flex justify-between items-center py-6 px-6">
+  <!-- Logo -->
+ <a href="/" class="flex items-center">
+<Image src={logoLoop} alt="Loop Logo" class="h-10 md:h-15 w-auto transition-transform duration-300 hover:scale-110" />
+</a>
+
+  <!-- Links centrales y Botones -->
+  <div class="hidden md:flex items-center gap-8 text-[10px] font-bold text-[#081C44] uppercase tracking-widest">
+    <a href="#" class="hover:text-blue-600 transition">Materias</a>
+    <a href="/registro-profe" class="hover:text-blue-600 transition">Dar Clases</a>
+    <a href="#" class="hover:text-blue-600 transition">Acerca</a>
+
+    
+{usuarioLogueado && (
+      <div class="flex items-center gap-6 ml-4">
+        <div class="flex items-center gap-2">
+          <div class="w-5 h-5 bg-[#081C44] rounded-full flex items-center justify-center">
+            <span class="text-white text-[10px]">∞</span>
+          </div>
+          <span class="text-xs font-extrabold text-slate-800">5</span>
+        </div>
+        <a href="/perfil" class="bg-blue-600 text-white px-6 py-2.5 rounded-full hover:bg-blue-700 transition">
+          PERFIL
+        </a>
+      </div>
+    )}
+
+    {!usuarioLogueado && (
+      <a href="/login" class="bg-blue-600 text-white px-6 py-2.5 rounded-full hover:bg-blue-700 transition ml-4">
+        LOG IN
+      </a>
+    )}
   </div>
 </nav>

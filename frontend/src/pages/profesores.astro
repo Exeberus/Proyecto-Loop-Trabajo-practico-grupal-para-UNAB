@@ -1,0 +1,263 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { profesores } from "../data/profesores";
+---
+
+<Layout title="Profesores">
+  <main class="min-h-screen bg-[#f5f5f5] px-5 pb-16">
+    <!-- ENCABEZADO -->
+    <section class="mx-auto max-w-5xl pt-14 text-center">
+      <h1 class="text-3xl font-extrabold text-[#0047ff] md:text-4xl">
+        Encontrá tu mejor opción como profe
+      </h1>
+
+      <!-- Buscador agregado -->
+      <div class="mx-auto mt-5 max-w-xl">
+        <input
+          id="buscadorProfesores"
+          type="text"
+          placeholder="Buscar por nombre o materia..."
+          class="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
+        />
+      </div>
+
+      <!-- Filtros -->
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+        <span class="text-sm font-bold text-[#081c44]">
+          Filtrado por
+        </span>
+
+        <span
+          id="chipFiltro"
+          class="rounded-full bg-[#0047ff] px-5 py-2 text-[10px] font-bold uppercase text-white"
+        >
+          Todos
+        </span>
+
+        <a
+          href="/profesores"
+          id="btnLimpiarFiltros"
+          class="hidden text-[10px] font-bold uppercase text-red-500 underline"
+        >
+          Limpiar filtros
+        </a>
+      </div>
+
+      <p
+        id="contadorResultados"
+        class="mt-3 text-xs font-bold text-slate-500"
+      >
+        6 profesores encontrados
+      </p>
+    </section>
+
+    <!-- GRILLA PROFESORES -->
+    <section class="mx-auto mt-8 max-w-5xl">
+      <div
+        id="grillaProfesores"
+        class="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        {
+          profesores.map((profe) => (
+            <article
+              class="profe-card rounded-[24px] bg-[#0047ff] p-3 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+              data-nombre={profe.nombre}
+              data-materias={profe.materias.join(" ")}
+            >
+              <img
+                src={profe.imagen}
+                alt={`Foto de ${profe.nombre}`}
+                class="h-48 w-full rounded-[18px] object-cover"
+              />
+
+              <div class="px-1 pb-2 pt-3">
+                <h2 class="text-2xl font-bold leading-none text-white">
+                  {profe.nombre}
+                </h2>
+                <p class="mt-2 text-xs font-bold text-white">
+  ID: {profe.id}
+</p>
+
+                <div class="mt-8 flex items-end justify-between gap-2">
+                  <div>
+                    <span class="mb-2 inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#0047ff]">
+                      {profe.rating} ★
+                    </span>
+
+                    <div class="flex flex-wrap gap-1">
+                      {profe.materias.map((materia) => (
+                        <span class="rounded-full border border-white px-3 py-1 text-[8px] font-bold uppercase text-white">
+                          {materia}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <a
+                    href={`/profe/${profe.id}`}
+                     class="shrink-0 rounded-full bg-white px-4 py-2 text-[9px] font-bold uppercase text-[#0047ff] transition hover:bg-slate-100">
+                  Ver más
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+
+      <p
+        id="sinResultados"
+        class="hidden py-12 text-center text-sm font-bold text-slate-500"
+      >
+        No encontramos profesores para esa búsqueda.
+      </p>
+    </section>
+
+    <!-- ACERCA DE NOSOTROS -->
+    <section class="mx-auto mt-14 max-w-5xl">
+      <article class="relative min-h-[260px] overflow-hidden rounded-[24px] bg-[#081c44] p-8 text-white shadow-lg md:p-12">
+        <img
+          src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop"
+          alt="Estudiantes trabajando en equipo"
+          class="absolute inset-0 h-full w-full object-cover opacity-55"
+        />
+
+        <div class="absolute inset-0 bg-black/35"></div>
+
+        <svg
+          class="absolute right-[-80px] top-[-45px] h-[360px] w-[450px] opacity-90"
+          viewBox="0 0 450 360"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M420 20C340 24 330 86 292 105C245 130 202 88 171 128C137 172 184 221 136 253C94 282 40 250 18 338"
+            stroke="white"
+            stroke-width="4"
+            stroke-linecap="round"
+          />
+          <path
+            d="M440 92C370 92 348 145 309 162C260 184 225 142 197 179C169 216 212 254 174 288C140 318 88 294 70 352"
+            stroke="white"
+            stroke-width="4"
+            stroke-linecap="round"
+          />
+        </svg>
+
+        <div class="relative z-10 max-w-xl">
+          <h2 class="mb-6 text-3xl font-extrabold md:text-4xl">
+            Acerca de nosotros
+          </h2>
+
+          <p class="mb-6 text-sm font-semibold leading-relaxed md:text-base">
+            Queremos que esta plataforma se utilice con el único fin de generar
+            Loops continuamente, convertirte en un mejor estudiante y profesor
+            para los demás. Todo de forma gratuita ayudando a otros!
+          </p>
+
+          <p class="mb-6 text-sm font-semibold leading-relaxed md:text-base">
+            Tenés alguna duda o necesitás ayuda para registrarte?
+            Comunicate con nosotros!
+          </p>
+
+          <a
+            href="mailto:loop@gmail.com"
+            class="inline-block rounded-full bg-[#0047ff] px-6 py-2 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
+          >
+            loop@gmail.com
+          </a>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const buscadorProfesores = document.getElementById(
+      "buscadorProfesores"
+    ) as HTMLInputElement | null;
+
+    const chipFiltro = document.getElementById(
+      "chipFiltro"
+    ) as HTMLSpanElement | null;
+
+    const btnLimpiarFiltros = document.getElementById(
+      "btnLimpiarFiltros"
+    ) as HTMLAnchorElement | null;
+
+    const contadorResultados = document.getElementById(
+      "contadorResultados"
+    ) as HTMLParagraphElement | null;
+
+    const sinResultados = document.getElementById(
+      "sinResultados"
+    ) as HTMLParagraphElement | null;
+
+    const tarjetasProfesores = Array.from(
+      document.querySelectorAll<HTMLElement>(".profe-card")
+    );
+
+    const parametros = new URLSearchParams(window.location.search);
+    const materiaUrl = parametros.get("materia") ?? "";
+
+    function normalizarTexto(texto: string) {
+      return texto
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function actualizarChipFiltro() {
+      if (!chipFiltro || !btnLimpiarFiltros) return;
+
+      if (materiaUrl) {
+        chipFiltro.textContent = materiaUrl;
+        btnLimpiarFiltros.classList.remove("hidden");
+      } else {
+        chipFiltro.textContent = "Todos";
+        btnLimpiarFiltros.classList.add("hidden");
+      }
+    }
+
+    function filtrarProfesores() {
+      const textoBuscado = normalizarTexto(buscadorProfesores?.value ?? "");
+      const materiaFiltrada = normalizarTexto(materiaUrl);
+
+      let cantidadVisibles = 0;
+
+      tarjetasProfesores.forEach((tarjeta) => {
+        const nombre = normalizarTexto(tarjeta.dataset.nombre ?? "");
+        const materias = normalizarTexto(tarjeta.dataset.materias ?? "");
+
+        const coincideBusqueda =
+          nombre.includes(textoBuscado) || materias.includes(textoBuscado);
+
+        const coincideMateria =
+          materiaFiltrada === "" || materias.includes(materiaFiltrada);
+
+        const mostrar = coincideBusqueda && coincideMateria;
+
+        tarjeta.classList.toggle("hidden", !mostrar);
+
+        if (mostrar) {
+          cantidadVisibles++;
+        }
+      });
+
+      if (contadorResultados) {
+        contadorResultados.textContent =
+          cantidadVisibles === 1
+            ? "1 profesor encontrado"
+            : `${cantidadVisibles} profesores encontrados`;
+      }
+
+      if (sinResultados) {
+        sinResultados.classList.toggle("hidden", cantidadVisibles > 0);
+      }
+    }
+
+    actualizarChipFiltro();
+    filtrarProfesores();
+
+    buscadorProfesores?.addEventListener("input", filtrarProfesores);
+  </script>
+</Layout>

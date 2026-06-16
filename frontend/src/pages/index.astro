@@ -1,29 +1,202 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
+const materias = [
+  "Matemática",
+  "Física",
+  "Programación",
+  "Inglés",
+  "Química",
+  "Sistemas",
+  "Diseño",
+  "Historia",
+  "Álgebra",
+  "Economía",
+];
+
+const profesores = [
+  {
+    nombre: "Nombre Apellido",
+    rating: 4.8,
+    materias: ["Matemática", "Programación"],
+    imagen:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=500&auto=format&fit=crop",
+  },
+  {
+    nombre: "Nombre Apellido",
+    rating: 4.9,
+    materias: ["Matemática", "Física"],
+    imagen:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=500&auto=format&fit=crop",
+  },
+  {
+    nombre: "Nombre Apellido",
+    rating: 4.7,
+    materias: ["Inglés", "Programación"],
+    imagen:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=500&auto=format&fit=crop",
+  },
+  {
+    nombre: "Nombre Apellido",
+    rating: 4.6,
+    materias: ["Diseño", "Comunicación"],
+    imagen:
+      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=500&auto=format&fit=crop",
+  },
+];
 ---
 
 <Layout title="Inicio">
-  <section class="text-center py-16 px-4">
-    <h1 class="text-4xl md:text-5xl font-black text-blue-600 mb-6 tracking-tight">
-      ¿Qué materia querés aprobar?
-    </h1>
-    <div class="max-w-xl mx-auto mb-4 relative">
-      <input 
-        type="text" 
-        placeholder="Buscar materia (ej: Programación, Matemática)..." 
-        class="w-full bg-gray-100 border border-gray-200 px-6 py-4 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
-      />
-    </div>
-  </section>
+  <main class="w-full bg-[#f5f5f5] px-5 pb-10">
+    <!-- HERO / BUSCADOR -->
+    <section class="mx-auto flex max-w-4xl flex-col items-center pt-10 text-center">
+      <h1 class="mb-6 text-3xl font-extrabold text-[#0047ff] md:text-4xl">
+        ¿Qué materia querés aprobar?
+      </h1>
 
-  <section class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto px-6 mb-16">
-    <div class="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-8 rounded-[2rem] shadow-md flex flex-col justify-between min-h-[220px]">
-      <p class="text-xl font-bold max-w-xs">Sacate esa materia que tanto te cuesta de encima, con profes que ya la aprobaron.</p>
-      <a href="/profesores" class="bg-black/20 text-white font-bold text-xs px-4 py-2 rounded-full self-start hover:bg-black/30 transition">VER PROFES</a>
-    </div>
-    <div class="bg-slate-800 text-white p-8 rounded-[2rem] shadow-md flex flex-col justify-between min-h-[220px] bg-cover bg-center" style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80')">
-      <p class="text-xl font-bold max-w-xs">¿Querés ganar Tokens como profesor?</p>
-      <a href="/registro-profe" class="bg-blue-600 text-white font-bold text-xs px-4 py-2 rounded-full self-start hover:bg-blue-700 transition">DA CLASES!</a>
-    </div>
-  </section>
+      <form class="relative mb-4 w-full max-w-2xl">
+        <input
+          type="text"
+          placeholder="Buscar..."
+          class="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
+        />
+
+        <button
+          type="submit"
+          class="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#0047ff] text-white transition hover:bg-blue-700"
+          aria-label="Buscar materia"
+        >
+          →
+        </button>
+      </form>
+
+      <div class="flex max-w-2xl flex-wrap justify-center gap-2">
+        {
+          materias.map((materia) => (
+            <a
+              href={`/profesores?materia=${materia.toLowerCase()}`}
+              class="rounded-full border border-[#081c44] px-5 py-1 text-[10px] font-bold uppercase text-[#081c44] transition hover:bg-[#081c44] hover:text-white"
+            >
+              {materia}
+            </a>
+          ))
+        }
+
+        <a
+          href="/profesores"
+          class="flex h-6 w-6 items-center justify-center rounded-full border border-[#081c44] text-xs font-bold text-[#081c44] transition hover:bg-[#081c44] hover:text-white"
+        >
+          +
+        </a>
+      </div>
+    </section>
+
+    <!-- BANNERS -->
+    <section class="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-[0.9fr_1.6fr]">
+      <article class="relative min-h-[230px] overflow-hidden rounded-[24px] bg-[#0047ff] p-7 text-white">
+        <div class="absolute -bottom-16 -right-10 h-44 w-44 rounded-full bg-cyan-300/80"></div>
+        <div class="absolute -bottom-10 -left-12 h-56 w-56 rounded-full bg-blue-900/40"></div>
+
+        <div class="relative z-10 flex h-full flex-col justify-between">
+          <h2 class="max-w-[240px] text-2xl font-extrabold leading-tight">
+            Sacate esa materia que tanto te cuesta de encima, con profes que ya la aprobaron.
+          </h2>
+
+          <a
+            href="/profesores"
+            class="mt-6 w-fit rounded-full bg-[#081c44] px-5 py-2 text-[10px] font-bold uppercase text-white transition hover:scale-105"
+          >
+            Ver profes
+          </a>
+        </div>
+      </article>
+
+      <article class="relative min-h-[230px] overflow-hidden rounded-[24px] bg-[#081c44] p-7 text-white">
+        <img
+          src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop"
+          alt="Estudiante programando"
+          class="absolute inset-0 h-full w-full object-cover opacity-45"
+        />
+
+        <div class="relative z-10 flex h-full flex-col justify-between">
+          <h2 class="max-w-[280px] text-2xl font-extrabold leading-tight">
+            Querés ganar Tokens como profesor?
+          </h2>
+
+          <a
+            href="/registro-profe"
+            class="mt-6 w-fit self-end rounded-full bg-[#0047ff] px-5 py-2 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
+          >
+            Da clases!
+          </a>
+        </div>
+      </article>
+    </section>
+
+    <!-- COMO FUNCIONA -->
+    <section class="mx-auto mt-16 max-w-xl text-center">
+      <h2 class="mb-5 text-3xl font-extrabold text-[#0047ff]">
+        ¿Cómo funciona Loop?
+      </h2>
+
+      <p class="mb-4 text-sm font-medium leading-relaxed text-[#081c44]">
+        Al registrarte te vamos a regalar
+        <strong class="text-[#0047ff]">2 Tokens</strong>
+        para que puedas intercambiarlos por una clase gratuita de la materia que elijas.
+      </p>
+
+      <p class="text-sm font-medium leading-relaxed text-[#081c44]">
+        Si necesitás más
+        <strong class="text-[#0047ff]">Tokens</strong>,
+        tenés que dar una clase de una materia que tengas aprobada y de esa manera generamos el
+        <strong class="text-[#0047ff]">Loop</strong>.
+      </p>
+    </section>
+
+    <!-- PROFES MEJOR EVALUADOS -->
+    <section class="mx-auto mt-20 max-w-6xl">
+      <h2 class="mb-8 text-center text-3xl font-extrabold text-[#0047ff]">
+        Los profes mejor evaluados
+      </h2>
+
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          profesores.map((profe) => (
+            <article class="rounded-[20px] bg-[#0047ff] p-3 shadow-md transition hover:-translate-y-1 hover:shadow-xl">
+              <img
+                src={profe.imagen}
+                alt={`Foto de ${profe.nombre}`}
+                class="h-44 w-full rounded-[14px] object-cover"
+              />
+
+              <div class="mt-3">
+                <h3 class="text-lg font-bold text-white">{profe.nombre}</h3>
+
+                <div class="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-[#0047ff]">
+                  ★ {profe.rating}
+                </div>
+
+                <div class="mt-3 flex items-end justify-between gap-2">
+                  <div class="flex flex-wrap gap-1">
+                    {profe.materias.map((materia) => (
+                      <span class="rounded-full border border-white px-2 py-1 text-[8px] font-bold uppercase text-white">
+                        {materia}
+                      </span>
+                    ))}
+                  </div>
+
+                  <a
+                    href="/profe"
+                    class="shrink-0 rounded-full bg-white px-3 py-1.5 text-[9px] font-bold uppercase text-[#0047ff] transition hover:bg-slate-100"
+                  >
+                    Ver más
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+  </main>
 </Layout>
