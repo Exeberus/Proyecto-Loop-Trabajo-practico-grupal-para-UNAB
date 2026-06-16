@@ -1,0 +1,295 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Mensajes" usuarioLogueado={true}>
+  <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
+    <!-- Fondo decorativo -->
+    <div class="absolute left-1/2 top-24 z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-[#0047ff]"></div>
+    <div class="absolute left-[55%] top-48 z-0 h-72 w-72 rounded-full bg-teal-300"></div>
+
+    <section class="relative z-10 mx-auto max-w-6xl">
+      <h1 class="mb-8 text-4xl font-extrabold text-[#0047ff]">
+        Mensajes
+      </h1>
+
+      <div class="grid grid-cols-1 gap-8 lg:grid-cols-[0.8fr_1.4fr]">
+        <!-- Panel tipo dropdown del wireframe -->
+        <aside class="h-fit rounded-[24px] bg-white p-5 shadow-xl">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-xl font-extrabold text-[#081c44]">
+              Notificaciones
+            </h2>
+
+            <span class="rounded-full bg-[#0047ff] px-3 py-1 text-[10px] font-bold uppercase text-white">
+              Mensajes
+            </span>
+          </div>
+
+          <div id="listaMensajes" class="space-y-3">
+            <div class="rounded-2xl border-l-4 border-red-500 bg-slate-50 p-4">
+              <p class="text-sm font-bold text-[#081c44]">
+                Cargando mensajes...
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Detalle del turno -->
+        <section class="rounded-[28px] bg-white p-8 shadow-xl">
+          <div class="mb-6">
+            <p class="text-xs font-bold uppercase tracking-widest text-[#0047ff]">
+              Centro de validación
+            </p>
+
+            <h2 class="mt-2 text-3xl font-extrabold text-[#081c44]">
+              Estado de tu Loop
+            </h2>
+
+            <p class="mt-2 text-sm font-semibold text-slate-500">
+              Confirmá la asistencia después de la clase para cerrar el intercambio.
+            </p>
+          </div>
+
+          <!-- Sin reserva -->
+          <div id="sinReserva" class="hidden rounded-2xl bg-slate-50 p-8 text-center">
+            <p class="text-sm font-bold text-slate-500">
+              Todavía no tenés clases reservadas.
+            </p>
+
+            <a
+              href="/profesores"
+              class="mt-5 inline-block rounded-full bg-[#0047ff] px-6 py-3 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
+            >
+              Buscar profesor
+            </a>
+          </div>
+
+          <!-- Reserva -->
+          <div id="cardReserva" class="hidden">
+            <div class="mb-6 rounded-2xl bg-slate-50 p-6">
+              <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-widest text-[#0047ff]">
+                    Clase pendiente
+                  </p>
+
+                  <h3 id="tituloReserva" class="mt-2 text-2xl font-extrabold text-[#081c44]">
+                  </h3>
+
+                  <p id="detalleReserva" class="mt-2 text-sm font-semibold text-slate-600">
+                  </p>
+                </div>
+
+                <span
+                  id="estadoReserva"
+                  class="w-fit rounded-full bg-yellow-100 px-4 py-2 text-[10px] font-bold uppercase text-yellow-700"
+                >
+                  Pendiente
+                </span>
+              </div>
+            </div>
+
+            <div class="mb-6 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <p class="mb-2 text-sm font-bold text-[#081c44]">
+                Link externo de la clase
+              </p>
+
+              <a
+                id="linkMeet"
+                href="#"
+                target="_blank"
+                class="text-sm font-bold text-[#0047ff] underline"
+              >
+                Abrir Google Meet
+              </a>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <button
+                id="btnCheckAlumno"
+                class="rounded-full border border-[#0047ff] px-6 py-3 text-[10px] font-bold uppercase text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white"
+              >
+                Check-in alumno
+              </button>
+
+              <button
+                id="btnCheckProfesor"
+                class="rounded-full border border-[#0047ff] px-6 py-3 text-[10px] font-bold uppercase text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white"
+              >
+                Check-in profesor
+              </button>
+            </div>
+
+            <div id="accionesFinales" class="mt-6 hidden rounded-2xl bg-green-50 p-5">
+              <p class="mb-4 text-sm font-bold text-green-700">
+                Validación dual completada. El Loop fue confirmado.
+              </p>
+
+              <a
+                href="/califica"
+                class="inline-block rounded-full bg-[#0047ff] px-6 py-3 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
+              >
+                Calificar clase
+              </a>
+            </div>
+
+            <button
+              id="btnAyuda"
+              class="mt-6 text-[10px] font-bold uppercase text-red-500 underline"
+            >
+              ¿Tu alumno/profesor no se presentó?
+            </button>
+
+            <p
+              id="mensajeAyuda"
+              class="mt-4 hidden rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
+            >
+              Reporte enviado a soporte. El turno quedó en conflicto.
+            </p>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      window.location.href = "/login";
+    }
+
+    const listaMensajes = document.getElementById("listaMensajes") as HTMLDivElement | null;
+    const sinReserva = document.getElementById("sinReserva") as HTMLDivElement | null;
+    const cardReserva = document.getElementById("cardReserva") as HTMLDivElement | null;
+
+    const tituloReserva = document.getElementById("tituloReserva") as HTMLHeadingElement | null;
+    const detalleReserva = document.getElementById("detalleReserva") as HTMLParagraphElement | null;
+    const estadoReserva = document.getElementById("estadoReserva") as HTMLSpanElement | null;
+    const linkMeet = document.getElementById("linkMeet") as HTMLAnchorElement | null;
+
+    const btnCheckAlumno = document.getElementById("btnCheckAlumno") as HTMLButtonElement | null;
+    const btnCheckProfesor = document.getElementById("btnCheckProfesor") as HTMLButtonElement | null;
+    const accionesFinales = document.getElementById("accionesFinales") as HTMLDivElement | null;
+
+    const btnAyuda = document.getElementById("btnAyuda") as HTMLButtonElement | null;
+    const mensajeAyuda = document.getElementById("mensajeAyuda") as HTMLParagraphElement | null;
+
+    const reservaGuardada = localStorage.getItem("reservaDemo");
+
+    let checkAlumno = localStorage.getItem("checkAlumno") === "true";
+    let checkProfesor = localStorage.getItem("checkProfesor") === "true";
+
+    function pintarMensajes(reserva: any) {
+      if (!listaMensajes) return;
+
+      listaMensajes.innerHTML = `
+        <div class="rounded-2xl border-l-4 border-red-500 bg-slate-50 p-4">
+          <p class="text-sm font-bold text-[#081c44]">
+            Tenés una clase pendiente con ${reserva.profesorNombre}.
+          </p>
+          <p class="mt-1 text-xs font-semibold text-slate-500">
+            Turno: ${reserva.turno}
+          </p>
+        </div>
+
+        <div class="rounded-2xl border-l-4 border-[#0047ff] bg-slate-50 p-4">
+          <p class="text-sm font-bold text-[#081c44]">
+            El link de Meet ya está disponible.
+          </p>
+          <p class="mt-1 text-xs font-semibold text-slate-500">
+            Ingresá desde el detalle de tu Loop.
+          </p>
+        </div>
+
+        <div class="rounded-2xl border-l-4 border-yellow-500 bg-slate-50 p-4">
+          <p class="text-sm font-bold text-[#081c44]">
+            Después de la clase, recordá hacer el check-in.
+          </p>
+        </div>
+      `;
+    }
+
+    function actualizarEstado() {
+      if (!estadoReserva || !accionesFinales || !btnCheckAlumno || !btnCheckProfesor) return;
+
+      if (checkAlumno) {
+        btnCheckAlumno.textContent = "Alumno confirmado";
+        btnCheckAlumno.disabled = true;
+        btnCheckAlumno.className =
+          "rounded-full bg-green-100 px-6 py-3 text-[10px] font-bold uppercase text-green-700";
+      }
+
+      if (checkProfesor) {
+        btnCheckProfesor.textContent = "Profesor confirmado";
+        btnCheckProfesor.disabled = true;
+        btnCheckProfesor.className =
+          "rounded-full bg-green-100 px-6 py-3 text-[10px] font-bold uppercase text-green-700";
+      }
+
+      if (checkAlumno && checkProfesor) {
+        estadoReserva.textContent = "Confirmado";
+        estadoReserva.className =
+          "w-fit rounded-full bg-green-100 px-4 py-2 text-[10px] font-bold uppercase text-green-700";
+
+        accionesFinales.classList.remove("hidden");
+      }
+    }
+
+    if (!reservaGuardada) {
+      sinReserva?.classList.remove("hidden");
+
+      if (listaMensajes) {
+        listaMensajes.innerHTML = `
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <p class="text-sm font-bold text-slate-500">
+              No tenés mensajes nuevos.
+            </p>
+          </div>
+        `;
+      }
+    } else {
+      const reserva = JSON.parse(reservaGuardada);
+
+      cardReserva?.classList.remove("hidden");
+      pintarMensajes(reserva);
+
+      if (tituloReserva) {
+        tituloReserva.textContent = `Clase con ${reserva.profesorNombre}`;
+      }
+
+      if (detalleReserva) {
+        detalleReserva.textContent = `Turno seleccionado: ${reserva.turno}`;
+      }
+
+      if (linkMeet) {
+        linkMeet.href = reserva.meet;
+      }
+
+      actualizarEstado();
+    }
+
+    btnCheckAlumno?.addEventListener("click", () => {
+      checkAlumno = true;
+      localStorage.setItem("checkAlumno", "true");
+      actualizarEstado();
+    });
+
+    btnCheckProfesor?.addEventListener("click", () => {
+      checkProfesor = true;
+      localStorage.setItem("checkProfesor", "true");
+      actualizarEstado();
+    });
+
+    btnAyuda?.addEventListener("click", () => {
+      if (!estadoReserva || !mensajeAyuda) return;
+
+      estadoReserva.textContent = "En conflicto";
+      estadoReserva.className =
+        "w-fit rounded-full bg-red-100 px-4 py-2 text-[10px] font-bold uppercase text-red-700";
+
+      mensajeAyuda.classList.remove("hidden");
+    });
+  </script>
+</Layout>

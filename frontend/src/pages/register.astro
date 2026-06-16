@@ -1,0 +1,187 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Registro">
+  <main class="relative mx-auto flex min-h-[calc(100vh-160px)] w-full max-w-6xl flex-col items-center justify-between gap-12 overflow-hidden px-6 py-12 md:flex-row">
+    
+    <!-- Círculo decorativo del wireframe -->
+    <div class="absolute left-1/2 top-1/2 -z-10 h-[420px] w-[420px] -translate-x-1/4 -translate-y-1/2 rounded-full bg-teal-300/80"></div>
+
+    <!-- Texto izquierdo -->
+    <section class="w-full md:w-1/2">
+      <h1 class="mb-16 text-4xl font-extrabold leading-tight tracking-tight text-[#0047ff] md:text-5xl">
+        Registrate para<br />
+        recibir tus<br />
+        primeros <span class="text-[#081c44]">Tokens</span>
+      </h1>
+
+      <a
+        href="/registro-profe"
+        class="text-[10px] font-bold uppercase tracking-wide text-[#0047ff] underline transition hover:text-blue-700"
+      >
+        Cambiar a profe
+      </a>
+    </section>
+
+    <!-- Formulario -->
+    <section class="relative z-10 flex w-full justify-end md:w-1/2">
+      <div class="w-full max-w-md rounded-[2rem] border border-slate-100 bg-white/95 p-8 shadow-2xl backdrop-blur-sm md:p-10">
+        
+        <form id="formRegistro" class="space-y-5">
+          <div>
+            <label
+              for="nombre"
+              class="mb-2 block text-sm font-bold text-[#081c44]"
+            >
+              Nombre
+            </label>
+
+            <input
+              type="text"
+              id="nombre"
+              name="nombre"
+              required
+              minlength="3"
+              class="w-full rounded-full border border-slate-200 bg-transparent px-5 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
+            />
+          </div>
+
+          <div>
+            <label
+              for="email"
+              class="mb-2 block text-sm font-bold text-[#081c44]"
+            >
+              Email
+            </label>
+
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              class="w-full rounded-full border border-slate-200 bg-transparent px-5 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
+            />
+          </div>
+
+          <div>
+            <label
+              for="password"
+              class="mb-2 block text-sm font-bold text-[#081c44]"
+            >
+              Contraseña
+            </label>
+
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              minlength="6"
+              class="w-full rounded-full border border-slate-200 bg-transparent px-5 py-3.5 text-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
+            />
+          </div>
+
+          <!-- Mensaje de error o éxito -->
+          <p
+            id="mensajeRegistro"
+            class="hidden rounded-xl px-4 py-3 text-sm font-semibold"
+          >
+          </p>
+
+          <div class="flex flex-row items-center justify-between gap-4 pt-6">
+            <label
+              for="foto"
+              class="cursor-pointer text-[10px] font-bold uppercase tracking-wide text-[#0047ff] underline transition hover:text-blue-700"
+            >
+              Foto de perfil
+              <span class="ml-1 font-normal text-slate-400">Opcional</span>
+            </label>
+
+            <input
+              type="file"
+              id="foto"
+              name="foto"
+              accept="image/*"
+              class="hidden"
+            />
+
+            <button
+              id="btnRegistro"
+              type="submit"
+              class="rounded-full bg-[#0047ff] px-8 py-3.5 text-xs font-bold uppercase text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Continuar
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = "http://localhost:5000";
+
+    const formRegistro = document.getElementById("formRegistro") as HTMLFormElement | null;
+    const mensajeRegistro = document.getElementById("mensajeRegistro") as HTMLParagraphElement | null;
+    const btnRegistro = document.getElementById("btnRegistro") as HTMLButtonElement | null;
+
+    type TipoMensaje = "error" | "ok";
+
+    function mostrarMensaje(texto: string, tipo: TipoMensaje) {
+      if (!mensajeRegistro) return;
+
+      mensajeRegistro.textContent = texto;
+      mensajeRegistro.classList.remove("hidden");
+
+      if (tipo === "error") {
+        mensajeRegistro.className =
+          "rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600";
+      }
+
+      if (tipo === "ok") {
+        mensajeRegistro.className =
+          "rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-600";
+      }
+    }
+
+    if (formRegistro && btnRegistro) {
+      formRegistro.addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+
+        const formData = new FormData(formRegistro);
+
+        try {
+          btnRegistro.disabled = true;
+          btnRegistro.textContent = "Creando...";
+
+          const respuesta = await fetch(`${API_URL}/api/register`, {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await respuesta.json();
+
+          if (!respuesta.ok) {
+            mostrarMensaje(data.mensaje || "No se pudo crear la cuenta.", "error");
+            return;
+          }
+
+          mostrarMensaje("Cuenta creada correctamente. Redirigiendo...", "ok");
+
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 900);
+        } catch (error) {
+          mostrarMensaje(
+            "No se pudo conectar con el servidor. Verificá que Flask esté ejecutándose.",
+            "error"
+          );
+        } finally {
+          btnRegistro.disabled = false;
+          btnRegistro.textContent = "Continuar";
+        }
+      });
+    }
+  </script>
+</Layout>

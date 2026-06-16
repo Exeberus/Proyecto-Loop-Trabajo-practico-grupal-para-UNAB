@@ -1,0 +1,208 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Calificar clase" usuarioLogueado={true}>
+  <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
+    <!-- Decoración similar al wireframe -->
+    <div class="absolute left-[22%] top-4 z-0 h-64 w-64 rounded-full bg-[#0047ff]"></div>
+    <div class="absolute left-[34%] top-20 z-0 h-56 w-56 rounded-full bg-teal-300"></div>
+
+    <section class="relative z-10 mx-auto max-w-6xl">
+      <article class="rounded-[28px] bg-white px-6 py-10 text-center shadow-xl md:px-12">
+        <h1 class="mb-4 text-3xl font-extrabold text-[#0047ff] md:text-4xl">
+          ¿Cómo fue tu clase de hoy?
+        </h1>
+
+        <p id="textoReserva" class="mb-5 text-xs font-bold text-slate-400">
+          ¿Ya se pudo intercambiar conocimiento?
+        </p>
+
+        <form id="formCalificacion" class="mx-auto max-w-xl">
+          <!-- Estrellas -->
+          <div class="mb-4 flex justify-center gap-1">
+            <button
+              type="button"
+              class="estrella text-4xl text-slate-300 transition hover:scale-110"
+              data-value="1"
+              aria-label="Calificar con 1 estrella"
+            >
+              ★
+            </button>
+
+            <button
+              type="button"
+              class="estrella text-4xl text-slate-300 transition hover:scale-110"
+              data-value="2"
+              aria-label="Calificar con 2 estrellas"
+            >
+              ★
+            </button>
+
+            <button
+              type="button"
+              class="estrella text-4xl text-slate-300 transition hover:scale-110"
+              data-value="3"
+              aria-label="Calificar con 3 estrellas"
+            >
+              ★
+            </button>
+
+            <button
+              type="button"
+              class="estrella text-4xl text-slate-300 transition hover:scale-110"
+              data-value="4"
+              aria-label="Calificar con 4 estrellas"
+            >
+              ★
+            </button>
+
+            <button
+              type="button"
+              class="estrella text-4xl text-slate-300 transition hover:scale-110"
+              data-value="5"
+              aria-label="Calificar con 5 estrellas"
+            >
+              ★
+            </button>
+          </div>
+
+          <input id="rating" name="rating" type="hidden" value="0" />
+
+          <textarea
+            id="comentario"
+            name="comentario"
+            rows="3"
+            placeholder="Dejá un comentario sobre la clase..."
+            class="mx-auto mb-4 block w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
+          ></textarea>
+
+          <p
+            id="mensajeCalificacion"
+            class="mb-5 hidden rounded-xl px-4 py-3 text-sm font-semibold"
+          >
+          </p>
+
+          <button
+            id="btnEnviarCalificacion"
+            type="submit"
+            class="rounded-full bg-[#0047ff] px-9 py-3 text-[10px] font-bold uppercase text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Enviar
+          </button>
+        </form>
+      </article>
+
+      <a
+        href="/mensajes"
+        class="mt-7 inline-block text-[10px] font-bold uppercase text-[#0047ff] underline"
+      >
+        &lt; Volver
+      </a>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      window.location.href = "/login";
+    }
+
+    const reservaGuardada = localStorage.getItem("reservaDemo");
+
+    const textoReserva = document.getElementById("textoReserva") as HTMLParagraphElement | null;
+    const formCalificacion = document.getElementById("formCalificacion") as HTMLFormElement | null;
+    const inputRating = document.getElementById("rating") as HTMLInputElement | null;
+    const comentario = document.getElementById("comentario") as HTMLTextAreaElement | null;
+    const mensajeCalificacion = document.getElementById("mensajeCalificacion") as HTMLParagraphElement | null;
+    const btnEnviarCalificacion = document.getElementById("btnEnviarCalificacion") as HTMLButtonElement | null;
+
+    const estrellas = Array.from(
+      document.querySelectorAll<HTMLButtonElement>(".estrella")
+    );
+
+    let ratingSeleccionado = 0;
+
+    if (reservaGuardada && textoReserva) {
+      const reserva = JSON.parse(reservaGuardada);
+      textoReserva.textContent = `Clase con ${reserva.profesorNombre} - ${reserva.turno}`;
+    }
+
+    function mostrarMensaje(texto: string, tipo: "error" | "ok") {
+      if (!mensajeCalificacion) return;
+
+      mensajeCalificacion.textContent = texto;
+      mensajeCalificacion.classList.remove("hidden");
+
+      if (tipo === "error") {
+        mensajeCalificacion.className =
+          "mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600";
+      }
+
+      if (tipo === "ok") {
+        mensajeCalificacion.className =
+          "mb-5 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-600";
+      }
+    }
+
+    function pintarEstrellas(rating: number) {
+      estrellas.forEach((estrella) => {
+        const valor = Number(estrella.dataset.value);
+
+        if (valor <= rating) {
+          estrella.classList.remove("text-slate-300");
+          estrella.classList.add("text-[#0047ff]");
+        } else {
+          estrella.classList.remove("text-[#0047ff]");
+          estrella.classList.add("text-slate-300");
+        }
+      });
+    }
+
+    estrellas.forEach((estrella) => {
+      estrella.addEventListener("click", () => {
+        ratingSeleccionado = Number(estrella.dataset.value);
+
+        if (inputRating) {
+          inputRating.value = String(ratingSeleccionado);
+        }
+
+        pintarEstrellas(ratingSeleccionado);
+      });
+    });
+
+    formCalificacion?.addEventListener("submit", (evento) => {
+      evento.preventDefault();
+
+      if (ratingSeleccionado === 0) {
+        mostrarMensaje("Seleccioná una calificación de 1 a 5 estrellas.", "error");
+        return;
+      }
+
+      const feedback = {
+        rating: ratingSeleccionado,
+        comentario: comentario?.value ?? "",
+        reserva: reservaGuardada ? JSON.parse(reservaGuardada) : null,
+        fecha: new Date().toISOString(),
+      };
+
+      localStorage.setItem("feedbackDemo", JSON.stringify(feedback));
+
+      if (btnEnviarCalificacion) {
+        btnEnviarCalificacion.disabled = true;
+        btnEnviarCalificacion.textContent = "Enviando...";
+      }
+
+      mostrarMensaje("Calificación enviada correctamente. Gracias por cerrar el Loop.", "ok");
+
+      setTimeout(() => {
+        localStorage.removeItem("reservaDemo");
+        localStorage.removeItem("checkAlumno");
+        localStorage.removeItem("checkProfesor");
+
+        window.location.href = "/perfil";
+      }, 1200);
+    });
+  </script>
+</Layout>
