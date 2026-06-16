@@ -1,0 +1,178 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { profesores } from "../../data/profesores";
+import type { Profesor } from "../../data/profesores";
+
+export function getStaticPaths() {
+  return profesores.map((profe: Profesor) => ({
+    params: { id: String(profe.id) },
+  }));
+}
+
+const idProfesor = Number(Astro.params.id);
+
+const profesor =
+  profesores.find((profe: Profesor) => Number(profe.id) === idProfesor) ??
+  profesores[0];
+
+const agenda = [
+  {
+    dia: "Lunes",
+    horarios: ["15:00", "16:00", "16:30", "17:00", "17:30"],
+  },
+  {
+    dia: "Martes",
+    horarios: ["15:00", "16:00", "16:30", "17:00", "17:30"],
+  },
+  {
+    dia: "Jueves",
+    horarios: ["15:00", "16:00", "16:30", "17:00", "17:30"],
+  },
+];
+---
+
+<Layout title="Generemos el Loop" usuarioLogueado={true}>
+  <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
+    <!-- Fondos decorativos -->
+    <div class="absolute left-[45%] top-20 z-0 h-72 w-72 rounded-full bg-[#0047ff]"></div>
+    <div class="absolute left-[35%] top-52 z-0 h-64 w-64 rounded-full bg-teal-300"></div>
+
+    <section class="relative z-10 mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 md:grid-cols-[0.8fr_1.5fr]">
+      
+      <!-- TEXTO IZQUIERDO -->
+      <section>
+        <h1 class="mb-6 text-4xl font-extrabold leading-none text-[#0047ff] md:text-5xl">
+          Generemos<br />
+          el loop
+        </h1>
+
+        <p class="max-w-sm text-sm font-semibold leading-relaxed text-[#081c44]">
+          Una vez que selecciones el horario, te enviaremos un mensaje de confirmación,
+          y el día de tu clase un link para ingresar al meet.
+        </p>
+
+        <p class="mt-5 text-sm font-bold text-[#0047ff]">
+          Profesor: {profesor.nombre}
+        </p>
+
+        <a
+          href={`/profe/${profesor.id}`}
+          class="mt-10 inline-block text-[10px] font-bold uppercase text-[#0047ff] underline"
+        >
+          &lt; Volver
+        </a>
+      </section>
+
+      <!-- CARD HORARIOS -->
+      <section class="rounded-[26px] bg-white p-7 shadow-xl md:p-9">
+        <form id="formTurno" class="space-y-6">
+          <input type="hidden" name="profesorId" value={profesor.id} />
+          <input type="hidden" name="profesorNombre" value={profesor.nombre} />
+
+          {
+            agenda.map((bloque) => (
+              <div>
+                <p class="mb-3 text-sm font-extrabold text-[#081c44]">
+                  {bloque.dia}
+                </p>
+
+                <div class="flex flex-wrap gap-2">
+                  {bloque.horarios.map((horario) => (
+                    <label class="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="turno"
+                        value={`${bloque.dia} ${horario}`}
+                        class="peer hidden"
+                        required
+                      />
+
+                      <span class="block rounded-full border border-[#081c44] px-4 py-1.5 text-[10px] font-bold text-[#081c44] transition peer-checked:bg-[#081c44] peer-checked:text-white hover:bg-[#081c44] hover:text-white">
+                        {horario}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))
+          }
+
+          <p
+            id="mensajeTurno"
+            class="hidden rounded-xl px-4 py-3 text-sm font-semibold"
+          >
+          </p>
+
+          <div class="flex justify-end pt-3">
+            <button
+              id="btnConfirmarTurno"
+              type="submit"
+              class="rounded-full bg-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Confirmar
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const formTurno = document.getElementById("formTurno") as HTMLFormElement | null;
+    const mensajeTurno = document.getElementById("mensajeTurno") as HTMLParagraphElement | null;
+    const btnConfirmarTurno = document.getElementById("btnConfirmarTurno") as HTMLButtonElement | null;
+
+    function mostrarMensaje(texto: string, tipo: "error" | "ok") {
+      if (!mensajeTurno) return;
+
+      mensajeTurno.textContent = texto;
+      mensajeTurno.classList.remove("hidden");
+
+      if (tipo === "error") {
+        mensajeTurno.className =
+          "rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600";
+      }
+
+      if (tipo === "ok") {
+        mensajeTurno.className =
+          "rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-600";
+      }
+    }
+
+    if (formTurno && btnConfirmarTurno) {
+      formTurno.addEventListener("submit", (evento) => {
+        evento.preventDefault();
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          window.location.href = "/login";
+          return;
+        }
+
+        const formData = new FormData(formTurno);
+
+        const reserva = {
+          profesorId: formData.get("profesorId"),
+          profesorNombre: formData.get("profesorNombre"),
+          turno: formData.get("turno"),
+          estado: "Pendiente",
+          meet: "https://meet.google.com/demo-loop",
+        };
+
+        localStorage.setItem("reservaDemo", JSON.stringify(reserva));
+        localStorage.removeItem("checkAlumno");
+        localStorage.removeItem("checkProfesor");
+
+        btnConfirmarTurno.disabled = true;
+        btnConfirmarTurno.textContent = "Confirmando...";
+
+        mostrarMensaje("Turno reservado correctamente. Redirigiendo a mensajes...", "ok");
+
+        setTimeout(() => {
+          window.location.href = "/mensajes";
+        }, 900);
+      });
+    }
+  </script>
+</Layout>

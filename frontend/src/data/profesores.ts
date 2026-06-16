@@ -11,67 +11,61 @@ export type Profesor = {
 export const profesores: Profesor[] = [
   {
     id: 1,
-    nombre: "Chivu Patines",
-    email: "chivu.patines@gmail.com",
-    rating: 4.5,
-    materias: ["Matemática", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=600&auto=format&fit=crop",
+    nombre: "Gabriel Avila",
+    email: "GabrielAvila@gmail.com",
+    rating: 5.0,
+    materias: ["Programación","ingles"],
+    imagen: "/profes/profe1.jpg",
     descripcion:
       "Soy estudiante de la UNAB y doy apoyo en materias iniciales. Me gusta explicar paso a paso y ayudar a preparar parciales.",
   },
   {
     id: 2,
-    nombre: "Profesor 2",
-    email: "profe2.loop@gmail.com",
-    rating: 4.5,
-    materias: ["Matemática", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=600&auto=format&fit=crop",
+    nombre: "Maximo Barraza",
+    email: "maxibarraza@gmail.com",
+    rating: 4.9,
+    materias: ["Programación","fisica"],
+    imagen: "/profes/profe2.jpg",
     descripcion:
       "Doy clases de apoyo para estudiantes que necesitan reforzar conceptos y practicar ejercicios.",
   },
   {
     id: 3,
-    nombre: "Nombre Apellido",
-    email: "profe3.loop@gmail.com",
-    rating: 4.5,
-    materias: ["Matemática", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?q=80&w=600&auto=format&fit=crop",
+    nombre: "Tomas Tagliani",
+    email: "tomas.tagliani@gmail.com",
+    rating: 5.0,
+    materias: ["Programación","ingles"],
+    imagen: "/profes/profe3.jpg",
     descripcion:
       "Ayudo a estudiantes a organizar sus temas de estudio y resolver dudas antes de exámenes.",
   },
     {
     id: 4,
-    nombre: "Nombre Apellido",
-    email: "profe3.loop@gmail.com",
-    rating: 4.5,
-    materias: ["Matemática", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?q=80&w=600&auto=format&fit=crop",
+    nombre: "Abril Cejas",
+    email: "Abril.Cejas@gmail.com",
+    rating: 4.9,
+    materias: ["Diseño","ingles"],
+    imagen: "/profes/profe4.jpg",
     descripcion:
       "Ayudo a estudiantes a organizar sus temas de estudio y resolver dudas antes de exámenes.",
   },
     {
     id: 5,
-    nombre: "Nombre Apellido",
-    email: "profe3.loop@gmail.com",
-    rating: 4.5,
-    materias: ["Matemática", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?q=80&w=600&auto=format&fit=crop",
+    nombre: "Franco Gallardo",
+    email: "GallardoFranco@gmail.com",
+    rating: 4.0,
+    materias: ["Fisica"],
+    imagen: "/profes/profe5.jpg",
     descripcion:
       "Ayudo a estudiantes a organizar sus temas de estudio y resolver dudas antes de exámenes.",
   },
     {
     id: 6,
-    nombre: "Nombre Apellido",
-    email: "profe3.loop@gmail.com",
-    rating: 4.5,
-    materias: ["Matemática", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?q=80&w=600&auto=format&fit=crop",
+    nombre: "Lautaro Rodriguez",
+    email: "LautyRodriguez@gmail.com",
+    rating: 4.8,
+    materias: ["Programación"],
+    imagen: "/profes/profe6.jpg",
     descripcion:
       "Ayudo a estudiantes a organizar sus temas de estudio y resolver dudas antes de exámenes.",
   },

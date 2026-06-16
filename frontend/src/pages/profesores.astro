@@ -74,10 +74,7 @@ import { profesores } from "../data/profesores";
                 <h2 class="text-2xl font-bold leading-none text-white">
                   {profe.nombre}
                 </h2>
-                <p class="mt-2 text-xs font-bold text-white">
-  ID: {profe.id}
-</p>
-
+                
                 <div class="mt-8 flex items-end justify-between gap-2">
                   <div>
                     <span class="mb-2 inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#0047ff]">
@@ -94,8 +91,8 @@ import { profesores } from "../data/profesores";
                   </div>
 
                   <a
-                    href={`/profe/${profe.id}`}
-                     class="shrink-0 rounded-full bg-white px-4 py-2 text-[9px] font-bold uppercase text-[#0047ff] transition hover:bg-slate-100">
+                   href={`/profe/${profe.id}`}
+                    class="shrink-0 rounded-full bg-white px-4 py-2 text-[9px] font-bold uppercase text-[#0047ff] transition hover:bg-slate-100">
                   Ver más
                   </a>
                 </div>

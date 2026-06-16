@@ -1,0 +1,196 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Editar perfil" usuarioLogueado={true}>
+  <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
+    <div class="absolute left-[30%] top-16 z-0 h-72 w-72 rounded-full bg-[#0047ff]"></div>
+    <div class="absolute left-[43%] top-36 z-0 h-64 w-64 rounded-full bg-teal-300"></div>
+
+    <section class="relative z-10 mx-auto max-w-4xl">
+      <article class="rounded-[28px] bg-white p-8 shadow-xl md:p-10">
+        <h1 class="mb-3 text-4xl font-extrabold text-[#0047ff]">
+          Editar perfil
+        </h1>
+
+        <p class="mb-8 text-sm font-semibold text-slate-500">
+          Actualizá tu foto y tu presentación pública dentro de Loop.
+        </p>
+
+        <form id="formEditarPerfil" class="grid grid-cols-1 gap-8 md:grid-cols-[220px_1fr]">
+          <div>
+            <div class="mb-4 h-52 w-full overflow-hidden rounded-[24px] bg-slate-100">
+              <img
+                id="previewFoto"
+                src="https://images.unsplash.com/photo-1519345182560-3f2917c472ef?q=80&w=600&auto=format&fit=crop"
+                alt="Foto de perfil"
+                class="h-full w-full object-cover"
+              />
+            </div>
+
+            <label
+              for="fotoPerfil"
+              class="block cursor-pointer rounded-full border border-[#0047ff] px-5 py-3 text-center text-[10px] font-bold uppercase text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white"
+            >
+              Cambiar foto
+            </label>
+
+            <input
+              id="fotoPerfil"
+              name="fotoPerfil"
+              type="file"
+              accept="image/*"
+              class="hidden"
+            />
+          </div>
+
+          <div class="space-y-5">
+            <div>
+              <label class="mb-2 block text-sm font-bold text-[#081c44]">
+                Nombre
+              </label>
+
+              <input
+                id="nombrePerfil"
+                type="text"
+                disabled
+                class="w-full rounded-full border border-slate-200 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-500"
+              />
+            </div>
+
+            <div>
+              <label for="speechPerfil" class="mb-2 block text-sm font-bold text-[#081c44]">
+                Presentación / Speech
+              </label>
+
+              <textarea
+                id="speechPerfil"
+                name="speechPerfil"
+                rows="6"
+                placeholder="Contá quién sos, qué materias dominás y cómo ayudás a otros estudiantes..."
+                class="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
+              ></textarea>
+            </div>
+
+            <p
+              id="mensajeEditarPerfil"
+              class="hidden rounded-xl px-4 py-3 text-sm font-semibold"
+            >
+            </p>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <a
+                href="/perfil"
+                class="rounded-full border border-[#0047ff] px-7 py-3 text-center text-[10px] font-bold uppercase text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white"
+              >
+                Cancelar
+              </a>
+
+              <button
+                type="submit"
+                class="rounded-full bg-[#0047ff] px-7 py-3 text-[10px] font-bold uppercase text-white shadow-md transition hover:bg-blue-700"
+              >
+                Guardar cambios
+              </button>
+            </div>
+          </div>
+        </form>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("token");
+    const usuarioGuardado = localStorage.getItem("usuario");
+
+    if (!token || !usuarioGuardado) {
+      window.location.href = "/login";
+    }
+
+    const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
+    const perfilGuardado = localStorage.getItem("perfilDemo");
+    const perfilDemo = perfilGuardado ? JSON.parse(perfilGuardado) : null;
+
+    const formEditarPerfil = document.getElementById("formEditarPerfil") as HTMLFormElement | null;
+    const nombrePerfil = document.getElementById("nombrePerfil") as HTMLInputElement | null;
+    const speechPerfil = document.getElementById("speechPerfil") as HTMLTextAreaElement | null;
+    const fotoPerfil = document.getElementById("fotoPerfil") as HTMLInputElement | null;
+    const previewFoto = document.getElementById("previewFoto") as HTMLImageElement | null;
+    const mensajeEditarPerfil = document.getElementById("mensajeEditarPerfil") as HTMLParagraphElement | null;
+
+    let fotoBase64 = perfilDemo?.foto ?? "";
+
+    if (nombrePerfil && usuario) {
+      nombrePerfil.value = usuario.nombre ?? "Usuario Loop";
+    }
+
+    if (speechPerfil) {
+      speechPerfil.value =
+        perfilDemo?.speech ??
+        "Soy estudiante de la UNAB y uso Loop para aprender y compartir conocimientos con otros compañeros.";
+    }
+
+    if (previewFoto && perfilDemo?.foto) {
+      previewFoto.src = perfilDemo.foto;
+    }
+
+    function mostrarMensaje(texto: string, tipo: "error" | "ok") {
+      if (!mensajeEditarPerfil) return;
+
+      mensajeEditarPerfil.textContent = texto;
+      mensajeEditarPerfil.classList.remove("hidden");
+
+      if (tipo === "error") {
+        mensajeEditarPerfil.className =
+          "rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600";
+      }
+
+      if (tipo === "ok") {
+        mensajeEditarPerfil.className =
+          "rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-600";
+      }
+    }
+
+    fotoPerfil?.addEventListener("change", () => {
+      const archivo = fotoPerfil.files?.[0];
+
+      if (!archivo) return;
+
+      const lector = new FileReader();
+
+      lector.onload = () => {
+        fotoBase64 = String(lector.result);
+
+        if (previewFoto) {
+          previewFoto.src = fotoBase64;
+        }
+      };
+
+      lector.readAsDataURL(archivo);
+    });
+
+    formEditarPerfil?.addEventListener("submit", (evento) => {
+      evento.preventDefault();
+
+      const speech = speechPerfil?.value.trim() ?? "";
+
+      if (speech.length < 10) {
+        mostrarMensaje("La presentación debe tener al menos 10 caracteres.", "error");
+        return;
+      }
+
+      const perfilActualizado = {
+        speech,
+        foto: fotoBase64,
+      };
+
+      localStorage.setItem("perfilDemo", JSON.stringify(perfilActualizado));
+
+      mostrarMensaje("Perfil actualizado correctamente.", "ok");
+
+      setTimeout(() => {
+        window.location.href = "/perfil";
+      }, 900);
+    });
+  </script>
+</Layout>
