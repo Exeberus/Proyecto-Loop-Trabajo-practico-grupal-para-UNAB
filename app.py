@@ -1,77 +1,202 @@
-from flask import Flask
+import sqlite3; import os
+from flask_cors import CORS
+from flask import Flask, render_template, request, session, jsonify, url_for, redirect, flash
+from routes.chat_routes import chat_bp
 
-from backend.extensions import db
-
-from backend.models.user import User
-from backend.models.conversation import Conversation
-from backend.models.message import Message
-
-from backend.routes.chat_routes import chat_bp
-
+from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
+app.secret_key = '0f2e4c18ca9ae37290cad43b86fad8f65aad8cf682561b0b3a0650c80737df45'
 
-
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///loop.db"
-
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-
-db.init_app(app)
-
-print("Loop Backend iniciado correctamente")
+print("App iniciada")
+CORS(app)
 
 app.register_blueprint(chat_bp)
 
+## Conectar a Base de datos
+@app.route("/api/test")
+def test():
+    return jsonify({
+        "message": "Backend funcionando"
+    })
 
-with app.app_context():
-    db.create_all()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "database.db")
 
-@app.route("/create-test-users")
-def create_test_users():
+def get_db():
+    print("BD ABIERTA:", DB_PATH)
+    return sqlite3.connect(DB_PATH)
 
-    from backend.models.user import User
+@app.route('/')
+def main_page():
 
-    if User.query.count() > 0:
-        return {
-            "message": "Usuarios ya existentes"
-        }
+    is_logued = None
+ 
+    if "user" in session:
+        is_logued = True
 
-    user1 = User(
-        username="Rodrigo"
+    return render_template("main_page.html", is_logued=is_logued)
+
+@app.route('/register', methods=["GET", "POST"])
+def register():
+
+    errors = []
+    special_chars = "!@#$%^&*()-_=+[]{};:,.<>?/\\|" ## Caracteres especiales
+    
+    if request.method == "POST":
+
+        username = request.form["username"]
+        email = request.form["email"]
+        password = request.form["password"]
+        password_confirm = request.form["password_confirm"]
+
+        if len(username) < 3:
+            errors.append("El usuario debe tener al menos 3 caracteres ")
+    
+        if len(password) < 8:
+            errors.append("La contraseña debe tener al menos 8 caracteres ")
+        
+        if not any (char in special_chars for char in password): 
+            errors.append("La contraseña debe tener al menos uno de estos carácteres especiales: !@#$%^&*()-_=+[]{};:,.<>?/\\| ")
+        
+        if not any(char.isdigit() for char in password):
+            errors.append("La contraseña debe tener al menos un número")
+
+        if password_confirm != password:
+            errors.append("Las contraseñas no coinciden")
+
+        if " " in username:
+            errors.append("El usuario no puede tener espacios ")
+
+        if "@" not in email:
+            errors.append("Email inválido ")
+        
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT id FROM users WHERE username = ?",
+            (username,)
+        )
+
+        if cursor.fetchone():
+            errors.append("Este nombre de Usuario ya está registrado")
+
+        cursor.execute(
+            "SELECT id FROM users WHERE email = ?",
+            (email,)
+        )
+            
+        if cursor.fetchone():
+            errors.append("Este Email ya está registrado")
+
+        if not errors:
+
+            password_hash = generate_password_hash(password)
+
+            cursor.execute(
+                "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+                (username, email, password_hash)
+            )
+
+            conn.commit()
+
+            flash("Cuenta creada correctamente. Porfavor inicie sesión.", "success")
+
+            conn.close()
+            
+            return redirect(url_for("login"))
+        
+        conn.close()
+
+    return render_template("register.html", errors=errors)
+
+@app.route('/login', methods=["GET", "POST"])
+def login():
+    
+    error = None
+
+    if request.method == "POST":
+
+        login_input = request.form["login"]
+        password = request.form["password"]
+
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT * FROM users
+            WHERE username = ? OR email = ?
+            """,
+            (login_input, login_input)
+        )
+
+        user = cursor.fetchone()
+
+        if user and check_password_hash(user[3], password):
+            session["user"] = user[1]
+            return redirect(url_for("dashboard"))
+        else:
+            error = "Usuario, Email o contraseña incorrectos"
+        
+    return render_template("login.html", error=error)
+
+@app.route("/dashboard")
+def dashboard():
+
+    if "user" not in session:
+
+        flash("Debes iniciar sesión para acceder al dashboard.", "error")
+
+        return redirect(url_for("login"))
+    
+    return "Dashboard"
+    
+@app.route("/logout")
+def logout():
+
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    username = session.get("user")
+
+    session.pop("user", None)
+
+    flash(f"Has cerrado la sesión de {username} correctamente", "success")
+
+    return redirect(url_for("login"))
+
+@app.route("/test-chat")
+def test_chat():
+
+    from services.chat_service import create_conversation
+
+    conversation = create_conversation(1, 2)
+
+    return conversation
+
+@app.route("/test-message")
+def test_message():
+
+    from services.chat_service import send_message
+
+    message = send_message(
+        1,              # conversation_id
+        1,              # sender_id
+        "Hola mundo"
     )
 
-    user2 = User(
-        username="Tutor"
-    )
+    return message
 
-    db.session.add(user1)
-    db.session.add(user2)
+@app.route("/test-get-messages")
+def test_get_messages():
 
-    db.session.commit()
+    from services.chat_service import get_messages
 
-    return {
-        "message": "Usuarios creados"
-    }
+    return get_messages(1)
 
-@app.route("/users")
-def list_users():
-
-    from backend.models.user import User
-
-    users = User.query.all()
-
-    response = []
-
-    for user in users:
-        response.append({
-            "id": user.id,
-            "username": user.username
-        })
-
-    return response
-
-if __name__ == "__main__":
-    app.run(
-        debug=True
-    )
+## Modo de Depuración
+if __name__ == '__main__': 
+    app.run(debug=True)
