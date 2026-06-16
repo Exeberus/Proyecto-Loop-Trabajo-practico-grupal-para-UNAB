@@ -1,18 +1,19 @@
 import sqlite3; import os
 from flask_cors import CORS
 from flask import Flask, render_template, request, session, jsonify, url_for, redirect, flash
-from routes.chat_routes import chat_bp
+
 
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:4321"}})
 app.secret_key = '0f2e4c18ca9ae37290cad43b86fad8f65aad8cf682561b0b3a0650c80737df45'
 
 print("App iniciada")
 CORS(app)
 
-app.register_blueprint(chat_bp)
+
 
 ## Conectar a Base de datos
 @app.route("/api/test")
@@ -27,6 +28,84 @@ DB_PATH = os.path.join(BASE_DIR, "database.db")
 def get_db():
     print("BD ABIERTA:", DB_PATH)
     return sqlite3.connect(DB_PATH)
+
+@app.route("/api/register", methods=["POST"])
+def api_register():
+    username = request.form.get("nombre") or request.form.get("username")
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    if not username or not email or not password:
+        return jsonify({"mensaje": "Faltan datos obligatorios."}), 400
+
+    if len(username) < 3:
+        return jsonify({"mensaje": "El nombre debe tener al menos 3 caracteres."}), 400
+
+    if len(password) < 6:
+        return jsonify({"mensaje": "La contraseña debe tener al menos 6 caracteres."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
+    usuario_existente = cursor.fetchone()
+
+    if usuario_existente:
+        conn.close()
+        return jsonify({"mensaje": "El usuario o email ya está registrado."}), 409
+
+    password_hash = generate_password_hash(password)
+
+    cursor.execute(
+        "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+        (username, email, password_hash)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"mensaje": "Usuario registrado correctamente."}), 201
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json()
+
+    email = data.get("email") if data else None
+    password = data.get("password") if data else None
+
+    if not email or not password:
+        return jsonify({"mensaje": "Email y contraseña son obligatorios."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM users WHERE email = ? OR username = ?",
+        (email, email)
+    )
+
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        return jsonify({"mensaje": "Email o contraseña incorrectos."}), 401
+
+    password_hash = user[3]
+
+    if not check_password_hash(password_hash, password):
+        return jsonify({"mensaje": "Email o contraseña incorrectos."}), 401
+
+    return jsonify({
+        "mensaje": "Login correcto.",
+        "token": f"token-demo-{user[0]}",
+        "usuario": {
+            "id": user[0],
+            "nombre": user[1],
+            "email": user[2],
+            "tokens": 2
+        }
+    }), 200
 
 @app.route('/')
 def main_page():
@@ -168,34 +247,43 @@ def logout():
 
     return redirect(url_for("login"))
 
-@app.route("/test-chat")
-def test_chat():
+@app.route("/api/perfil", methods=["GET"])
+def api_perfil():
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "")
 
-    from services.chat_service import create_conversation
+    if not token.startswith("token-demo-"):
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
 
-    conversation = create_conversation(1, 2)
+    try:
+        user_id = int(token.replace("token-demo-", ""))
+    except ValueError:
+        return jsonify({"mensaje": "Token inválido."}), 401
 
-    return conversation
+    conn = get_db()
+    cursor = conn.cursor()
 
-@app.route("/test-message")
-def test_message():
-
-    from services.chat_service import send_message
-
-    message = send_message(
-        1,              # conversation_id
-        1,              # sender_id
-        "Hola mundo"
+    cursor.execute(
+        "SELECT id, username, email FROM users WHERE id = ?",
+        (user_id,)
     )
 
-    return message
+    user = cursor.fetchone()
+    conn.close()
 
-@app.route("/test-get-messages")
-def test_get_messages():
+    if not user:
+        return jsonify({"mensaje": "Usuario no encontrado."}), 404
 
-    from services.chat_service import get_messages
-
-    return get_messages(1)
+    return jsonify({
+        "usuario": {
+            "id": user[0],
+            "nombre": user[1],
+            "email": user[2],
+            "tokens": 2,
+            "rol": "alumno"
+        },
+        "reservas": []
+    }), 200
 
 ## Modo de Depuración
 if __name__ == '__main__': 
