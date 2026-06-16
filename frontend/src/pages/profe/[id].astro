@@ -47,9 +47,7 @@ const profesor =
             <h1 class="mt-1 text-3xl font-extrabold leading-none text-[#0047ff] md:text-4xl">
               {profesor.nombre}
             </h1>
-            <p class="mt-2 text-xs font-bold text-red-500">
-  DEBUG - ID URL: {idProfesor} | ID cargado: {profesor.id}
-</p>
+            
             <p class="mt-2 break-all text-[10px] font-bold uppercase tracking-wide text-[#0047ff]">
               {profesor.email}
             </p>
@@ -83,7 +81,7 @@ const profesor =
 
             <div class="flex justify-end">
               <a
-                href={`/generar-loop?id=${profesor.id}`}
+                href={`/generar-loop/${profesor.id}`}
                 class="rounded-full bg-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-blue-700"
               >
                 Conectemos

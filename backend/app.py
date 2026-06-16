@@ -26,8 +26,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database.db")
 
 def get_db():
-    print("BD ABIERTA:", DB_PATH)
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
@@ -56,16 +57,16 @@ def api_register():
 
     password_hash = generate_password_hash(password)
 
-    cursor.execute(
-        "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-        (username, email, password_hash)
-    )
+    cursor.execute("""
+    INSERT INTO users 
+    (username, email, password, tokens, intentos_fallidos, bloqueado, rol)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+""", (username, email, password_hash, 2, 0, 0, "alumno"))
 
     conn.commit()
     conn.close()
 
     return jsonify({"mensaje": "Usuario registrado correctamente."}), 201
-
 
 @app.route("/api/login", methods=["POST"])
 def api_login():
@@ -86,15 +87,59 @@ def api_login():
     )
 
     user = cursor.fetchone()
-    conn.close()
 
     if not user:
+        conn.close()
         return jsonify({"mensaje": "Email o contraseña incorrectos."}), 401
+
+    # user[0] = id
+    # user[1] = username
+    # user[2] = email
+    # user[3] = password
+    # user[4] = tokens
+    # user[5] = intentos_fallidos
+    # user[6] = bloqueado
+    # user[7] = rol
+
+    if user[6] == 1:
+        conn.close()
+        return jsonify({
+            "mensaje": "Cuenta bloqueada por demasiados intentos fallidos."
+        }), 403
 
     password_hash = user[3]
 
     if not check_password_hash(password_hash, password):
-        return jsonify({"mensaje": "Email o contraseña incorrectos."}), 401
+        intentos_actuales = user[5] or 0
+        nuevos_intentos = intentos_actuales + 1
+        bloqueado = 1 if nuevos_intentos >= 5 else 0
+
+        cursor.execute("""
+            UPDATE users
+            SET intentos_fallidos = ?, bloqueado = ?
+            WHERE id = ?
+        """, (nuevos_intentos, bloqueado, user[0]))
+
+        conn.commit()
+        conn.close()
+
+        if bloqueado == 1:
+            return jsonify({
+                "mensaje": "Cuenta bloqueada tras 5 intentos fallidos."
+            }), 403
+
+        return jsonify({
+            "mensaje": f"Email o contraseña incorrectos. Intentos: {nuevos_intentos}/5."
+        }), 401
+
+    cursor.execute("""
+        UPDATE users
+        SET intentos_fallidos = 0
+        WHERE id = ?
+    """, (user[0],))
+
+    conn.commit()
+    conn.close()
 
     return jsonify({
         "mensaje": "Login correcto.",
@@ -103,11 +148,11 @@ def api_login():
             "id": user[0],
             "nombre": user[1],
             "email": user[2],
-            "tokens": 2
+            "tokens": user[4],
+            "rol": user[7]
         }
     }), 200
 
-@app.route('/')
 def main_page():
 
     is_logued = None

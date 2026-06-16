@@ -1,0 +1,21 @@
+---
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cerrando sesión...</title>
+  </head>
+
+  <body>
+    <p>Cerrando sesión...</p>
+
+    <script>
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+
+      window.location.href = "/login";
+    </script>
+  </body>
+</html>
