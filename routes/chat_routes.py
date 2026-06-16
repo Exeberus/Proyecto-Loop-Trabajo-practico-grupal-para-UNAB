@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask import request
 
-from backend.services.chat_service import (
+from services.chat_service import (
     create_conversation,
     send_message,
     get_messages,
