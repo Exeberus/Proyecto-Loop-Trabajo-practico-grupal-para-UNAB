@@ -6,6 +6,8 @@ from routes.chat_routes import chat_bp
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
+
+
 app = Flask(__name__)
 app.secret_key = '0f2e4c18ca9ae37290cad43b86fad8f65aad8cf682561b0b3a0650c80737df45'
 
