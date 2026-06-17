@@ -22,6 +22,24 @@ CREATE TABLE IF NOT EXISTS users (
 """
 )
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS ratings (
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    reviewer_id INTEGER NOT NULL,
+
+    rated_user_id INTEGER NOT NULL,
+
+    stars INTEGER NOT NULL,
+
+    FOREIGN KEY(reviewer_id) REFERENCES users(id),
+    FOREIGN KEY(rated_user_id) REFERENCES users(id)
+
+)
+"""
+)
+
 cursor.execute("""        
 CREATE TABLE IF NOT EXISTS conversations (
 
