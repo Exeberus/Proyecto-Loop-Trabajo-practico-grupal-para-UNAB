@@ -4,10 +4,7 @@ import os
 print("CARPETA ACTUAL:")
 print(os.getcwd())
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "database.db")
-
-conn = sqlite3.connect(DB_PATH)
+conn = sqlite3.connect("database.db")
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -19,30 +16,11 @@ CREATE TABLE IF NOT EXISTS users (
                
     email TEXT NOT NULL UNIQUE,
                
-    password TEXT NOT NULL,
-
-    tokens INTEGER DEFAULT 2,
-
-    intentos_fallidos INTEGER DEFAULT 0,
-
-    bloqueado INTEGER DEFAULT 0,
-
-    rol TEXT DEFAULT 'alumno'
+    password TEXT NOT NULL
     
 )
 """
 )
-
-for nombre, definicion in (
-    ("tokens", "INTEGER DEFAULT 2"),
-    ("intentos_fallidos", "INTEGER DEFAULT 0"),
-    ("bloqueado", "INTEGER DEFAULT 0"),
-    ("rol", "TEXT DEFAULT 'alumno'"),
-):
-    try:
-        cursor.execute(f"ALTER TABLE users ADD COLUMN {nombre} {definicion}")
-    except sqlite3.OperationalError:
-        pass
 
 cursor.execute("""        
 CREATE TABLE IF NOT EXISTS conversations (

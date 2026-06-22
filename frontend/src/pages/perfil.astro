@@ -17,7 +17,7 @@ import Layout from '../layouts/Layout.astro';
           <div class="w-24 h-24 bg-blue-100 rounded-full mb-4 overflow-hidden flex items-center justify-center shadow-inner">
             <span class="text-4xl font-bold text-blue-600">A</span>
           </div>
-          <h2 id="nombre-usuario" class="text-2xl font-extrabold text-slate-800">Alumno UNAB</h2>
+          <h2 id="nombre-usuario" ...>Alumno UNAB</h2>
           <p class="text-sm text-slate-500 font-medium mb-6">Estudiante</p>
          <a
           href="/editar-perfil"
@@ -87,8 +87,6 @@ import Layout from '../layouts/Layout.astro';
 
 <!-- SCRIPT INTEGRADO: RESERVAS Y DATOS DE USUARIO -->
   <script is:inline>
-    const API_URL = 'http://localhost:5000';
-
     const cargarDatosYReservas = async () => {
       // --- LÓGICA DE RESERVAS (Lo que ya tenías) ---
       const tarjetaReserva = document.getElementById('tarjeta-reserva');
@@ -119,7 +117,7 @@ import Layout from '../layouts/Layout.astro';
       }
       if (token) {
         try {
-          const respuesta = await fetch(`${API_URL}/api/perfil`, {
+          const respuesta = await fetch('http://127.0.0.1:5000/api/perfil', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           
@@ -129,7 +127,6 @@ import Layout from '../layouts/Layout.astro';
 
             document.getElementById('nombre-usuario').innerText = usuario.nombre;
             document.getElementById('saldo-tokens').innerText = usuario.tokens;
-            localStorage.setItem('usuario', JSON.stringify(usuario));
           }
         } catch (error) {
       console.error("¡ERROR DE CONEXIÓN CON EL BACKEND!", error);
@@ -138,6 +135,7 @@ import Layout from '../layouts/Layout.astro';
       }
     };
     
+    cargarDatosYReservas();
     function cargarPerfilEditado() {
   const perfilGuardado = localStorage.getItem("perfilDemo");
 
@@ -164,4 +162,6 @@ document.addEventListener("astro:page-load", () => {
   cargarDatosYReservas();
   cargarPerfilEditado();
 });
+
+    document.addEventListener('astro:page-load', cargarDatosYReservas);
   </script>
