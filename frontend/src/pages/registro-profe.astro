@@ -42,6 +42,15 @@ const horarios = ["15:00", "16:00", "17:00", "18:00", "19:00"];
       >
         Volver a alumno
       </a>
+
+      <div class="mt-8 max-w-sm rounded-[24px] bg-white p-5 shadow-lg">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-[#0047ff]">
+          Tu postulación
+        </p>
+        <p id="resumenPostulacion" class="mt-3 text-sm font-bold leading-relaxed text-[#081c44]">
+          Elegí una materia, disponibilidad y certificado para enviar tu perfil.
+        </p>
+      </div>
     </section>
 
     <section class="relative z-10 flex w-full justify-end md:w-1/2">
@@ -142,6 +151,9 @@ const horarios = ["15:00", "16:00", "17:00", "18:00", "19:00"];
               required
               class="mt-3 block w-full text-xs text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-[#0047ff] file:px-4 file:py-2 file:text-xs file:font-bold file:text-white hover:file:bg-blue-700"
             />
+
+            <p id="nombreCertificado" class="mt-2 hidden text-xs font-bold text-slate-500">
+            </p>
           </div>
 
           <p
@@ -170,6 +182,8 @@ const horarios = ["15:00", "16:00", "17:00", "18:00", "19:00"];
     const formRegistroProfe = document.getElementById("formRegistroProfe") as HTMLFormElement | null;
     const mensajeRegistroProfe = document.getElementById("mensajeRegistroProfe") as HTMLParagraphElement | null;
     const btnRegistroProfe = document.getElementById("btnRegistroProfe") as HTMLButtonElement | null;
+    const resumenPostulacion = document.getElementById("resumenPostulacion") as HTMLParagraphElement | null;
+    const nombreCertificado = document.getElementById("nombreCertificado") as HTMLParagraphElement | null;
 
     type TipoMensaje = "error" | "ok";
 
@@ -191,6 +205,36 @@ const horarios = ["15:00", "16:00", "17:00", "18:00", "19:00"];
     }
 
     if (formRegistroProfe && btnRegistroProfe) {
+      const selectMateria = document.getElementById("materia") as HTMLSelectElement | null;
+      const certificado = document.getElementById("certificado") as HTMLInputElement | null;
+
+      function actualizarResumen() {
+        if (!resumenPostulacion) return;
+
+        const materia = selectMateria?.selectedOptions[0]?.textContent?.trim() || "Materia pendiente";
+        const dias = Array.from(
+          formRegistroProfe.querySelectorAll<HTMLInputElement>('input[name="dias"]:checked')
+        ).map((input) => input.parentElement?.textContent?.trim()).filter(Boolean);
+        const horarios = Array.from(
+          formRegistroProfe.querySelectorAll<HTMLInputElement>('input[name="horarios"]:checked')
+        ).map((input) => input.value);
+
+        resumenPostulacion.textContent =
+          `${materia} · ${dias.length ? dias.join(", ") : "sin días"} · ${horarios.length ? horarios.join(", ") : "sin horarios"}`;
+      }
+
+      formRegistroProfe.addEventListener("change", actualizarResumen);
+
+      certificado?.addEventListener("change", () => {
+        if (!nombreCertificado) return;
+
+        const archivo = certificado.files?.[0];
+        nombreCertificado.textContent = archivo
+          ? `Certificado seleccionado: ${archivo.name}`
+          : "";
+        nombreCertificado.classList.toggle("hidden", !archivo);
+      });
+
       formRegistroProfe.addEventListener("submit", async (evento) => {
         evento.preventDefault();
 

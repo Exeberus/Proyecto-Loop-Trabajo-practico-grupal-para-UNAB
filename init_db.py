@@ -22,42 +22,19 @@ CREATE TABLE IF NOT EXISTS users (
 """
 )
 
-cursor.execute("""        
-CREATE TABLE IF NOT EXISTS conversations (
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    user1_id INTEGER NOT NULL,
-
-    user2_id INTEGER NOT NULL,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY(user1_id) REFERENCES users(id),
-               
-    FOREIGN KEY(user2_id) REFERENCES users(id)              
-)
-"""
-)
-
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE IF NOT EXISTS ratings (
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    conversation_id INTEGER NOT NULL,
+    reviewer_id INTEGER NOT NULL,
 
-    sender_id INTEGER NOT NULL,
+    rated_user_id INTEGER NOT NULL,
 
-    content TEXT NOT NULL,
+    stars INTEGER NOT NULL,
 
-    is_read INTEGER DEFAULT 0,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY(conversation_id) REFERENCES conversations(id),
-
-    FOREIGN KEY(sender_id) REFERENCES users(id)
+    FOREIGN KEY(reviewer_id) REFERENCES users(id),
+    FOREIGN KEY(rated_user_id) REFERENCES users(id)
 
 )
 """)

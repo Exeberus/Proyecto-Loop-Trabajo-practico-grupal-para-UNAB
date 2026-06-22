@@ -28,6 +28,129 @@ def get_db():
     print("BD ABIERTA:", DB_PATH)
     return sqlite3.connect(DB_PATH)
 
+@app.route("/api/register", methods=["POST"])
+def api_register():
+    username = request.form.get("nombre") or request.form.get("username")
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    if not username or not email or not password:
+        return jsonify({"mensaje": "Faltan datos obligatorios."}), 400
+
+    if len(username) < 3:
+        return jsonify({"mensaje": "El nombre debe tener al menos 3 caracteres."}), 400
+
+    if len(password) < 6:
+        return jsonify({"mensaje": "La contraseña debe tener al menos 6 caracteres."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
+    usuario_existente = cursor.fetchone()
+
+    if usuario_existente:
+        conn.close()
+        return jsonify({"mensaje": "El usuario o email ya está registrado."}), 409
+
+    password_hash = generate_password_hash(password)
+
+    cursor.execute("""
+    INSERT INTO users 
+    (username, email, password, tokens, intentos_fallidos, bloqueado, rol)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+""", (username, email, password_hash, 2, 0, 0, "alumno"))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"mensaje": "Usuario registrado correctamente."}), 201
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json()
+
+    email = data.get("email") if data else None
+    password = data.get("password") if data else None
+
+    if not email or not password:
+        return jsonify({"mensaje": "Email y contraseña son obligatorios."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM users WHERE email = ? OR username = ?",
+        (email, email)
+    )
+
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({"mensaje": "Email o contraseña incorrectos."}), 401
+
+    # user[0] = id
+    # user[1] = username
+    # user[2] = email
+    # user[3] = password
+    # user[4] = tokens
+    # user[5] = intentos_fallidos
+    # user[6] = bloqueado
+    # user[7] = rol
+
+    if user[6] == 1:
+        conn.close()
+        return jsonify({
+            "mensaje": "Cuenta bloqueada por demasiados intentos fallidos."
+        }), 403
+
+    password_hash = user[3]
+
+    if not check_password_hash(password_hash, password):
+        intentos_actuales = user[5] or 0
+        nuevos_intentos = intentos_actuales + 1
+        bloqueado = 1 if nuevos_intentos >= 5 else 0
+
+        cursor.execute("""
+            UPDATE users
+            SET intentos_fallidos = ?, bloqueado = ?
+            WHERE id = ?
+        """, (nuevos_intentos, bloqueado, user[0]))
+
+        conn.commit()
+        conn.close()
+
+        if bloqueado == 1:
+            return jsonify({
+                "mensaje": "Cuenta bloqueada tras 5 intentos fallidos."
+            }), 403
+
+        return jsonify({
+            "mensaje": f"Email o contraseña incorrectos. Intentos: {nuevos_intentos}/5."
+        }), 401
+
+    cursor.execute("""
+        UPDATE users
+        SET intentos_fallidos = 0
+        WHERE id = ?
+    """, (user[0],))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "mensaje": "Login correcto.",
+        "token": f"token-demo-{user[0]}",
+        "usuario": {
+            "id": user[0],
+            "nombre": user[1],
+            "email": user[2],
+            "tokens": user[4],
+            "rol": user[7]
+        }
+    }), 200
+
 @app.route('/')
 def main_page():
 
@@ -136,8 +259,11 @@ def login():
         user = cursor.fetchone()
 
         if user and check_password_hash(user[3], password):
+
+            session["user_id"] = user[0]
             session["user"] = user[1]
             return redirect(url_for("dashboard"))
+        
         else:
             error = "Usuario, Email o contraseña incorrectos"
         
@@ -152,7 +278,10 @@ def dashboard():
 
         return redirect(url_for("login"))
     
-    return "Dashboard"
+    return {
+        "user_id": session.get("user_id"),
+        "username": session.get("user")
+    }
     
 @app.route("/logout")
 def logout():
@@ -168,34 +297,118 @@ def logout():
 
     return redirect(url_for("login"))
 
-@app.route("/test-chat")
-def test_chat():
+@app.route("/ratings")
+def ratings():
 
-    from services.chat_service import create_conversation
+    conn = get_db()
+    cursor = conn.cursor()
 
-    conversation = create_conversation(1, 2)
+    cursor.execute("""
+        SELECT *
+        FROM ratings
+    """)
 
-    return conversation
+    data = cursor.fetchall()
 
-@app.route("/test-message")
-def test_message():
+    conn.close()
 
-    from services.chat_service import send_message
+    return str(data)
 
-    message = send_message(
-        1,              # conversation_id
-        1,              # sender_id
-        "Hola mundo"
+def add_rating(reviewer_id, rated_user_id, stars):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM ratings
+        WHERE reviewer_id = ?
+        AND rated_user_id = ?
+        """,
+        (reviewer_id, rated_user_id)
     )
 
-    return message
+    if reviewer_id == rated_user_id:
+        conn.close()
+        return False
 
-@app.route("/test-get-messages")
-def test_get_messages():
+    existing_rating = cursor.fetchone()
 
-    from services.chat_service import get_messages
+    if existing_rating:
+        conn.close()
+        return False
 
-    return get_messages(1)
+    cursor.execute(
+        """
+        INSERT INTO ratings
+        (
+            reviewer_id,
+            rated_user_id,
+            stars
+        )
+        VALUES (?, ?, ?)
+        """,
+        (
+            reviewer_id,
+            rated_user_id,
+            stars
+        )
+    )
+
+    conn.commit()
+    conn.close()
+
+def get_user_rating_with_name(user_id):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT u.username, AVG(stars)
+        FROM users u
+        LEFT JOIN ratings r
+            ON u.id = r.rated_user_id
+        WHERE u.id = ?
+        GROUP BY u.id
+        """,
+        (user_id,)
+    )
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+
+        username = result[0]
+        rating = round(result[1], 1) if result[1] else 0
+
+        return username, rating
+
+    return None, 0
+
+@app.route("/test-rating")
+def test_rating():
+
+    username, rating = get_user_rating_with_name(3)
+
+    return {
+        "username" : username,
+        "rating" : rating,
+    }
+
+@app.route("/test-rate")
+def test_rate():
+
+    add_rating(
+        reviewer_id=2,
+        rated_user_id=3,
+        stars=5
+    )
+
+    return "Rating agregado"
 
 ## Modo de Depuración
 if __name__ == '__main__': 

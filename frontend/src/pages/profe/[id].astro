@@ -14,6 +14,8 @@ const idProfesor = Number(Astro.params.id);
 const profesor =
   profesores.find((profe: Profesor) => Number(profe.id) === idProfesor) ??
   profesores[0];
+
+const disponibilidad = profesor.disponibilidad ?? [];
 ---
 
 <Layout title="Perfil del profesor" usuarioLogueado={true}>
@@ -90,6 +92,48 @@ const profesor =
           </div>
         </div>
       </article>
+
+      {
+        disponibilidad.length > 0 && (
+          <section class="mt-6 rounded-[24px] bg-white p-6 shadow-lg">
+            <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-[#0047ff]">
+                  Disponibilidad
+                </p>
+                <h2 class="mt-1 text-2xl font-extrabold text-[#081c44]">
+                  Próximos horarios para generar el Loop
+                </h2>
+              </div>
+
+              <a
+                href={`/generar-loop/${profesor.id}`}
+                class="w-fit rounded-full border border-[#0047ff] px-5 py-2 text-[10px] font-bold uppercase text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white"
+              >
+                Reservar
+              </a>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {disponibilidad.map((bloque) => (
+                <article class="rounded-2xl bg-slate-50 p-4">
+                  <p class="mb-3 text-sm font-extrabold text-[#081c44]">
+                    {bloque.dia}
+                  </p>
+
+                  <div class="flex flex-wrap gap-2">
+                    {bloque.horarios.map((horario) => (
+                      <span class="rounded-full border border-[#081c44] px-3 py-1 text-[10px] font-bold text-[#081c44]">
+                        {horario}
+                      </span>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )
+      }
 
       <!-- VOLVER -->
       <div class="mt-6">

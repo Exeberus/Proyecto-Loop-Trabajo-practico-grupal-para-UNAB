@@ -4,7 +4,6 @@ import Layout from "../layouts/Layout.astro";
 
 <Layout title="Mensajes" usuarioLogueado={true}>
   <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
-    <!-- Fondo decorativo -->
     <div class="absolute left-1/2 top-24 z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-[#0047ff]"></div>
     <div class="absolute left-[55%] top-48 z-0 h-72 w-72 rounded-full bg-teal-300"></div>
 
@@ -14,7 +13,6 @@ import Layout from "../layouts/Layout.astro";
       </h1>
 
       <div class="grid grid-cols-1 gap-8 lg:grid-cols-[0.8fr_1.4fr]">
-        <!-- Panel tipo dropdown del wireframe -->
         <aside class="h-fit rounded-[24px] bg-white p-5 shadow-xl">
           <div class="mb-4 flex items-center justify-between">
             <h2 class="text-xl font-extrabold text-[#081c44]">
@@ -35,7 +33,6 @@ import Layout from "../layouts/Layout.astro";
           </div>
         </aside>
 
-        <!-- Detalle del turno -->
         <section class="rounded-[28px] bg-white p-8 shadow-xl">
           <div class="mb-6">
             <p class="text-xs font-bold uppercase tracking-widest text-[#0047ff]">
@@ -51,7 +48,6 @@ import Layout from "../layouts/Layout.astro";
             </p>
           </div>
 
-          <!-- Sin reserva -->
           <div id="sinReserva" class="hidden rounded-2xl bg-slate-50 p-8 text-center">
             <p class="text-sm font-bold text-slate-500">
               Todavía no tenés clases reservadas.
@@ -65,13 +61,12 @@ import Layout from "../layouts/Layout.astro";
             </a>
           </div>
 
-          <!-- Reserva -->
           <div id="cardReserva" class="hidden">
             <div class="mb-6 rounded-2xl bg-slate-50 p-6">
               <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p class="text-xs font-bold uppercase tracking-widest text-[#0047ff]">
-                    Clase pendiente
+                Clase pendiente
                   </p>
 
                   <h3 id="tituloReserva" class="mt-2 text-2xl font-extrabold text-[#081c44]">
@@ -154,6 +149,7 @@ import Layout from "../layouts/Layout.astro";
   </main>
 
   <script>
+    const API_URL = "http://localhost:5000";
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -176,10 +172,22 @@ import Layout from "../layouts/Layout.astro";
     const btnAyuda = document.getElementById("btnAyuda") as HTMLButtonElement | null;
     const mensajeAyuda = document.getElementById("mensajeAyuda") as HTMLParagraphElement | null;
 
-    const reservaGuardada = localStorage.getItem("reservaDemo");
+    let reservaActual: any = null;
 
-    let checkAlumno = localStorage.getItem("checkAlumno") === "true";
-    let checkProfesor = localStorage.getItem("checkProfesor") === "true";
+    function pintarSinReserva() {
+      sinReserva?.classList.remove("hidden");
+      cardReserva?.classList.add("hidden");
+
+      if (listaMensajes) {
+        listaMensajes.innerHTML = `
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <p class="text-sm font-bold text-slate-500">
+              No tenés mensajes nuevos.
+            </p>
+          </div>
+        `;
+      }
+    }
 
     function pintarMensajes(reserva: any) {
       if (!listaMensajes) return;
@@ -187,7 +195,7 @@ import Layout from "../layouts/Layout.astro";
       listaMensajes.innerHTML = `
         <div class="rounded-2xl border-l-4 border-red-500 bg-slate-50 p-4">
           <p class="text-sm font-bold text-[#081c44]">
-            Tenés una clase pendiente con ${reserva.profesorNombre}.
+            Intercambiaste 1 token por una clase con ${reserva.profesorNombre}.
           </p>
           <p class="mt-1 text-xs font-semibold text-slate-500">
             Turno: ${reserva.turno}
@@ -211,47 +219,11 @@ import Layout from "../layouts/Layout.astro";
       `;
     }
 
-    function actualizarEstado() {
-      if (!estadoReserva || !accionesFinales || !btnCheckAlumno || !btnCheckProfesor) return;
+    function pintarReserva(reserva: any) {
+      reservaActual = reserva;
+      localStorage.setItem("reservaDemo", JSON.stringify(reserva));
 
-      if (checkAlumno) {
-        btnCheckAlumno.textContent = "Alumno confirmado";
-        btnCheckAlumno.disabled = true;
-        btnCheckAlumno.className =
-          "rounded-full bg-green-100 px-6 py-3 text-[10px] font-bold uppercase text-green-700";
-      }
-
-      if (checkProfesor) {
-        btnCheckProfesor.textContent = "Profesor confirmado";
-        btnCheckProfesor.disabled = true;
-        btnCheckProfesor.className =
-          "rounded-full bg-green-100 px-6 py-3 text-[10px] font-bold uppercase text-green-700";
-      }
-
-      if (checkAlumno && checkProfesor) {
-        estadoReserva.textContent = "Confirmado";
-        estadoReserva.className =
-          "w-fit rounded-full bg-green-100 px-4 py-2 text-[10px] font-bold uppercase text-green-700";
-
-        accionesFinales.classList.remove("hidden");
-      }
-    }
-
-    if (!reservaGuardada) {
-      sinReserva?.classList.remove("hidden");
-
-      if (listaMensajes) {
-        listaMensajes.innerHTML = `
-          <div class="rounded-2xl bg-slate-50 p-4">
-            <p class="text-sm font-bold text-slate-500">
-              No tenés mensajes nuevos.
-            </p>
-          </div>
-        `;
-      }
-    } else {
-      const reserva = JSON.parse(reservaGuardada);
-
+      sinReserva?.classList.add("hidden");
       cardReserva?.classList.remove("hidden");
       pintarMensajes(reserva);
 
@@ -267,20 +239,104 @@ import Layout from "../layouts/Layout.astro";
         linkMeet.href = reserva.meet;
       }
 
-      actualizarEstado();
+      actualizarEstado(reserva);
     }
 
-    btnCheckAlumno?.addEventListener("click", () => {
-      checkAlumno = true;
-      localStorage.setItem("checkAlumno", "true");
-      actualizarEstado();
-    });
+    function actualizarEstado(reserva: any) {
+      if (!estadoReserva || !accionesFinales || !btnCheckAlumno || !btnCheckProfesor) return;
 
-    btnCheckProfesor?.addEventListener("click", () => {
-      checkProfesor = true;
-      localStorage.setItem("checkProfesor", "true");
-      actualizarEstado();
-    });
+      const checkAlumno = Boolean(reserva.checkAlumno);
+      const checkProfesor = Boolean(reserva.checkProfesor);
+
+      btnCheckAlumno.textContent = checkAlumno ? "Alumno confirmado" : "Check-in alumno";
+      btnCheckAlumno.disabled = checkAlumno;
+      btnCheckAlumno.className = checkAlumno
+        ? "rounded-full bg-green-100 px-6 py-3 text-[10px] font-bold uppercase text-green-700"
+        : "rounded-full border border-[#0047ff] px-6 py-3 text-[10px] font-bold uppercase text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white";
+
+      btnCheckProfesor.textContent = checkProfesor ? "Profesor confirmado" : "Check-in profesor";
+      btnCheckProfesor.disabled = checkProfesor;
+      btnCheckProfesor.className = checkProfesor
+        ? "rounded-full bg-green-100 px-6 py-3 text-[10px] font-bold uppercase text-green-700"
+        : "rounded-full border border-[#0047ff] px-6 py-3 text-[10px] font-bold uppercase text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white";
+
+      if (checkAlumno && checkProfesor) {
+        estadoReserva.textContent = "Confirmado";
+        estadoReserva.className =
+          "w-fit rounded-full bg-green-100 px-4 py-2 text-[10px] font-bold uppercase text-green-700";
+        accionesFinales.classList.remove("hidden");
+      } else {
+        estadoReserva.textContent = "Pendiente";
+        estadoReserva.className =
+          "w-fit rounded-full bg-yellow-100 px-4 py-2 text-[10px] font-bold uppercase text-yellow-700";
+        accionesFinales.classList.add("hidden");
+      }
+    }
+
+    async function cargarReservaActiva() {
+      try {
+        const respuesta = await fetch(`${API_URL}/api/reservas/activa`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await respuesta.json();
+
+        if (!respuesta.ok || !data.reserva) {
+          pintarSinReserva();
+          return;
+        }
+
+        pintarReserva(data.reserva);
+      } catch (error) {
+        const reservaGuardada = localStorage.getItem("reservaDemo");
+
+        if (reservaGuardada) {
+          pintarReserva(JSON.parse(reservaGuardada));
+          return;
+        }
+
+        pintarSinReserva();
+      }
+    }
+
+    async function confirmar(tipo: "alumno" | "profesor") {
+      if (!reservaActual) return;
+
+      const boton = tipo === "alumno" ? btnCheckAlumno : btnCheckProfesor;
+      const accion = tipo === "alumno" ? "confirmar-alumno" : "confirmar-profesor";
+
+      if (boton) {
+        boton.disabled = true;
+        boton.textContent = "Confirmando...";
+      }
+
+      try {
+        const respuesta = await fetch(`${API_URL}/api/reservas/${reservaActual.id}/${accion}`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await respuesta.json();
+
+        if (!respuesta.ok) {
+          alert(data.mensaje || "No se pudo confirmar la asistencia.");
+          actualizarEstado(reservaActual);
+          return;
+        }
+
+        pintarReserva(data.reserva);
+      } catch (error) {
+        alert("No se pudo conectar con el servidor. Verificá que Flask esté ejecutándose.");
+        actualizarEstado(reservaActual);
+      }
+    }
+
+    btnCheckAlumno?.addEventListener("click", () => confirmar("alumno"));
+    btnCheckProfesor?.addEventListener("click", () => confirmar("profesor"));
 
     btnAyuda?.addEventListener("click", () => {
       if (!estadoReserva || !mensajeAyuda) return;
@@ -291,5 +347,7 @@ import Layout from "../layouts/Layout.astro";
 
       mensajeAyuda.classList.remove("hidden");
     });
+
+    cargarReservaActiva();
   </script>
 </Layout>

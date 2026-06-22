@@ -1,5 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
+const materiasPerfil = [
+  "Matemática",
+  "Programación",
+  "Física",
+  "Inglés",
+  "Química",
+  "Diseño",
+];
 ---
 
 <Layout title="Editar perfil" usuarioLogueado={true}>
@@ -72,6 +81,28 @@ import Layout from "../layouts/Layout.astro";
               ></textarea>
             </div>
 
+            <div>
+              <p class="mb-3 block text-sm font-bold text-[#081c44]">
+                Materias que querés mostrar
+              </p>
+
+              <div class="flex flex-wrap gap-2">
+                {materiasPerfil.map((materia) => (
+                  <label class="cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="materiasPerfil"
+                      value={materia}
+                      class="peer hidden"
+                    />
+                    <span class="block rounded-full border border-[#0047ff] px-4 py-1.5 text-[10px] font-bold uppercase text-[#0047ff] transition peer-checked:bg-[#0047ff] peer-checked:text-white hover:bg-blue-50">
+                      {materia}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <p
               id="mensajeEditarPerfil"
               class="hidden rounded-xl px-4 py-3 text-sm font-semibold"
@@ -108,7 +139,20 @@ import Layout from "../layouts/Layout.astro";
     }
 
     const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
-    const perfilGuardado = localStorage.getItem("perfilDemo");
+
+    function obtenerClavePerfil(usuarioActual: any) {
+      const email = String(usuarioActual?.email ?? "").trim().toLowerCase();
+      const identificador =
+        email ||
+        usuarioActual?.id ||
+        usuarioActual?.nombre ||
+        "anonimo";
+
+      return `perfilDemo:${identificador}`;
+    }
+
+    const clavePerfil = obtenerClavePerfil(usuario);
+    const perfilGuardado = localStorage.getItem(clavePerfil);
     const perfilDemo = perfilGuardado ? JSON.parse(perfilGuardado) : null;
 
     const formEditarPerfil = document.getElementById("formEditarPerfil") as HTMLFormElement | null;
@@ -117,6 +161,9 @@ import Layout from "../layouts/Layout.astro";
     const fotoPerfil = document.getElementById("fotoPerfil") as HTMLInputElement | null;
     const previewFoto = document.getElementById("previewFoto") as HTMLImageElement | null;
     const mensajeEditarPerfil = document.getElementById("mensajeEditarPerfil") as HTMLParagraphElement | null;
+    const checksMaterias = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="materiasPerfil"]')
+    );
 
     let fotoBase64 = perfilDemo?.foto ?? "";
 
@@ -132,6 +179,12 @@ import Layout from "../layouts/Layout.astro";
 
     if (previewFoto && perfilDemo?.foto) {
       previewFoto.src = perfilDemo.foto;
+    }
+
+    if (perfilDemo?.materias?.length) {
+      checksMaterias.forEach((check) => {
+        check.checked = perfilDemo.materias.includes(check.value);
+      });
     }
 
     function mostrarMensaje(texto: string, tipo: "error" | "ok") {
@@ -182,9 +235,12 @@ import Layout from "../layouts/Layout.astro";
       const perfilActualizado = {
         speech,
         foto: fotoBase64,
+        materias: checksMaterias
+          .filter((check) => check.checked)
+          .map((check) => check.value),
       };
 
-      localStorage.setItem("perfilDemo", JSON.stringify(perfilActualizado));
+      localStorage.setItem(clavePerfil, JSON.stringify(perfilActualizado));
 
       mostrarMensaje("Perfil actualizado correctamente.", "ok");
 

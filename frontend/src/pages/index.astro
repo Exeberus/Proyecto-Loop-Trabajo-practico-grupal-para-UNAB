@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { profesores } from "../data/profesores";
 
 const materias = [
   "Matemática",
@@ -14,36 +15,9 @@ const materias = [
   "Economía",
 ];
 
-const profesores = [
-  {
-    nombre: "Nombre Apellido",
-    rating: 4.8,
-    materias: ["Matemática", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=500&auto=format&fit=crop",
-  },
-  {
-    nombre: "Nombre Apellido",
-    rating: 4.9,
-    materias: ["Matemática", "Física"],
-    imagen:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=500&auto=format&fit=crop",
-  },
-  {
-    nombre: "Nombre Apellido",
-    rating: 4.7,
-    materias: ["Inglés", "Programación"],
-    imagen:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=500&auto=format&fit=crop",
-  },
-  {
-    nombre: "Nombre Apellido",
-    rating: 4.6,
-    materias: ["Diseño", "Comunicación"],
-    imagen:
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=500&auto=format&fit=crop",
-  },
-];
+const profesoresDestacados = [...profesores]
+  .sort((a, b) => b.rating - a.rating)
+  .slice(0, 4);
 ---
 
 <Layout title="Inicio">
@@ -54,9 +28,10 @@ const profesores = [
         ¿Qué materia querés aprobar?
       </h1>
 
-      <form class="relative mb-4 w-full max-w-2xl">
+      <form action="/profesores" method="get" class="relative mb-4 w-full max-w-2xl">
         <input
           type="text"
+          name="materia"
           placeholder="Buscar..."
           class="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-[#0047ff]"
         />
@@ -161,7 +136,7 @@ const profesores = [
 
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {
-          profesores.map((profe) => (
+          profesoresDestacados.map((profe) => (
             <article class="rounded-[20px] bg-[#0047ff] p-3 shadow-md transition hover:-translate-y-1 hover:shadow-xl">
               <img
                 src={profe.imagen}
@@ -186,7 +161,7 @@ const profesores = [
                   </div>
 
                   <a
-                    href="/profe"
+                    href={`/profe/${profe.id}`}
                     class="shrink-0 rounded-full bg-white px-3 py-1.5 text-[9px] font-bold uppercase text-[#0047ff] transition hover:bg-slate-100"
                   >
                     Ver más
