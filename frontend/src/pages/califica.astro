@@ -69,6 +69,12 @@ import Layout from "../layouts/Layout.astro";
 
           <input id="rating" name="rating" type="hidden" value="0" />
 
+          <p
+            id="resumenRating"
+            class="mb-4 hidden text-sm font-bold text-[#0047ff]"
+          >
+          </p>
+
           <textarea
             id="comentario"
             name="comentario"
@@ -90,6 +96,18 @@ import Layout from "../layouts/Layout.astro";
           >
             Enviar
           </button>
+
+          <div class="mt-6">
+            <p class="text-xs font-bold text-slate-400">
+              ¿No se presentó? Comunicate con nosotros.
+            </p>
+            <a
+              href="mailto:loop@gmail.com"
+              class="mt-3 inline-block rounded-full bg-[#0047ff] px-7 py-3 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
+            >
+              Ayuda
+            </a>
+          </div>
         </form>
       </article>
 
@@ -103,6 +121,7 @@ import Layout from "../layouts/Layout.astro";
   </main>
 
   <script>
+    const API_URL = "http://localhost:5000";
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -114,6 +133,7 @@ import Layout from "../layouts/Layout.astro";
     const textoReserva = document.getElementById("textoReserva") as HTMLParagraphElement | null;
     const formCalificacion = document.getElementById("formCalificacion") as HTMLFormElement | null;
     const inputRating = document.getElementById("rating") as HTMLInputElement | null;
+    const resumenRating = document.getElementById("resumenRating") as HTMLParagraphElement | null;
     const comentario = document.getElementById("comentario") as HTMLTextAreaElement | null;
     const mensajeCalificacion = document.getElementById("mensajeCalificacion") as HTMLParagraphElement | null;
     const btnEnviarCalificacion = document.getElementById("btnEnviarCalificacion") as HTMLButtonElement | null;
@@ -127,6 +147,8 @@ import Layout from "../layouts/Layout.astro";
     if (reservaGuardada && textoReserva) {
       const reserva = JSON.parse(reservaGuardada);
       textoReserva.textContent = `Clase con ${reserva.profesorNombre} - ${reserva.turno}`;
+    } else {
+      mostrarMensaje("No encontramos una clase pendiente para calificar. Volvé a mensajes para revisar tu Loop.", "error");
     }
 
     function mostrarMensaje(texto: string, tipo: "error" | "ok") {
@@ -168,11 +190,19 @@ import Layout from "../layouts/Layout.astro";
           inputRating.value = String(ratingSeleccionado);
         }
 
+        if (resumenRating) {
+          resumenRating.textContent =
+            ratingSeleccionado === 1
+              ? "Seleccionaste 1 estrella"
+              : `Seleccionaste ${ratingSeleccionado} estrellas`;
+          resumenRating.classList.remove("hidden");
+        }
+
         pintarEstrellas(ratingSeleccionado);
       });
     });
 
-    formCalificacion?.addEventListener("submit", (evento) => {
+    formCalificacion?.addEventListener("submit", async (evento) => {
       evento.preventDefault();
 
       if (ratingSeleccionado === 0) {
@@ -180,29 +210,72 @@ import Layout from "../layouts/Layout.astro";
         return;
       }
 
-      const feedback = {
-        rating: ratingSeleccionado,
-        comentario: comentario?.value ?? "",
-        reserva: reservaGuardada ? JSON.parse(reservaGuardada) : null,
-        fecha: new Date().toISOString(),
-      };
+      const reserva = reservaGuardada ? JSON.parse(reservaGuardada) : null;
 
-      localStorage.setItem("feedbackDemo", JSON.stringify(feedback));
+      if (!reserva?.profesorId) {
+        mostrarMensaje("No encontramos la reserva asociada a esta calificación.", "error");
+        return;
+      }
 
       if (btnEnviarCalificacion) {
         btnEnviarCalificacion.disabled = true;
         btnEnviarCalificacion.textContent = "Enviando...";
       }
 
-      mostrarMensaje("Calificación enviada correctamente. Gracias por cerrar el Loop.", "ok");
+      const feedback = {
+        rating: ratingSeleccionado,
+        comentario: comentario?.value ?? "",
+        reserva,
+        fecha: new Date().toISOString(),
+      };
 
-      setTimeout(() => {
-        localStorage.removeItem("reservaDemo");
-        localStorage.removeItem("checkAlumno");
-        localStorage.removeItem("checkProfesor");
+      try {
+        const respuesta = await fetch(`${API_URL}/api/ratings`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            rated_user_id: reserva.profesorId,
+            reserva_id: reserva.id,
+            stars: ratingSeleccionado,
+            comment: comentario?.value ?? "",
+          }),
+        });
 
-        window.location.href = "/perfil";
-      }, 1200);
+        const data = await respuesta.json();
+
+        if (!respuesta.ok) {
+          mostrarMensaje(data.mensaje || "No se pudo guardar la calificación.", "error");
+          return;
+        }
+
+        localStorage.setItem("feedbackDemo", JSON.stringify({
+          ...feedback,
+          promedioActualizado: data.rating?.promedio ?? ratingSeleccionado,
+        }));
+
+        mostrarMensaje("Calificación enviada correctamente. Gracias por cerrar el Loop.", "ok");
+
+        setTimeout(() => {
+          localStorage.removeItem("reservaDemo");
+          localStorage.removeItem("checkAlumno");
+          localStorage.removeItem("checkProfesor");
+
+          window.location.href = "/perfil";
+        }, 1200);
+      } catch (error) {
+        mostrarMensaje(
+          "No se pudo conectar con el servidor. Verificá que Flask esté ejecutándose.",
+          "error"
+        );
+      } finally {
+        if (btnEnviarCalificacion) {
+          btnEnviarCalificacion.disabled = false;
+          btnEnviarCalificacion.textContent = "Enviar";
+        }
+      }
     });
   </script>
 </Layout>

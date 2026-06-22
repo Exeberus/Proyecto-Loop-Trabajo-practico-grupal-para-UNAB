@@ -1,6 +1,9 @@
+import json
 import sqlite3; import os
+from datetime import datetime, timedelta
 from flask_cors import CORS
 from flask import Flask, render_template, request, session, jsonify, url_for, redirect, flash
+from werkzeug.utils import secure_filename
 
 
 from werkzeug.security import generate_password_hash
@@ -25,6 +28,8 @@ def test():
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database.db")
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "certificados")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -42,6 +47,24 @@ def get_user_id_from_token():
         return int(token.replace("token-demo-", ""))
     except ValueError:
         return None
+
+def serializar_postulacion(row):
+    if not row:
+        return None
+
+    return {
+        "id": row["id"],
+        "userId": row["user_id"],
+        "materia": row["materia"],
+        "descripcion": row["descripcion"],
+        "dias": json.loads(row["dias"] or "[]"),
+        "horarios": json.loads(row["horarios"] or "[]"),
+        "certificadoNombre": row["certificado_nombre"],
+        "certificadoPath": row["certificado_path"],
+        "estado": row["estado"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
@@ -184,6 +207,13 @@ def api_registro_profe():
     if "certificado" not in request.files:
         return jsonify({"mensaje": "Adjuntá el certificado de materias aprobadas."}), 400
 
+    certificado = request.files["certificado"]
+
+    if not certificado or certificado.filename == "":
+        return jsonify({"mensaje": "Adjuntá el certificado de materias aprobadas."}), 400
+
+    certificado_nombre = secure_filename(certificado.filename)
+
     conn = get_db()
     cursor = conn.cursor()
 
@@ -194,11 +224,516 @@ def api_registro_profe():
         conn.close()
         return jsonify({"mensaje": "Usuario no encontrado."}), 404
 
+    nombre_archivo = f"user_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{certificado_nombre}"
+    certificado_path = os.path.join(UPLOAD_DIR, nombre_archivo)
+    certificado.save(certificado_path)
+
     cursor.execute("UPDATE users SET rol = ? WHERE id = ?", ("profe", user_id))
+
+    cursor.execute(
+        """
+        INSERT INTO profesor_postulaciones (
+            user_id,
+            materia,
+            descripcion,
+            dias,
+            horarios,
+            certificado_nombre,
+            certificado_path,
+            estado,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'pendiente', CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET
+            materia = excluded.materia,
+            descripcion = excluded.descripcion,
+            dias = excluded.dias,
+            horarios = excluded.horarios,
+            certificado_nombre = excluded.certificado_nombre,
+            certificado_path = excluded.certificado_path,
+            estado = 'pendiente',
+            updated_at = CURRENT_TIMESTAMP
+        """,
+        (
+            user_id,
+            materia,
+            descripcion,
+            json.dumps(dias, ensure_ascii=False),
+            json.dumps(horarios, ensure_ascii=False),
+            certificado_nombre,
+            certificado_path,
+        )
+    )
+
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM profesor_postulaciones
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    postulacion = cursor.fetchone()
+    conn.close()
+
+    return jsonify({
+        "mensaje": "Postulación enviada correctamente.",
+        "postulacion": serializar_postulacion(postulacion)
+    }), 200
+
+@app.route("/api/ratings", methods=["POST"])
+def api_create_rating():
+    reviewer_id = get_user_id_from_token()
+
+    if not reviewer_id:
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"mensaje": "Faltan datos de calificación."}), 400
+
+    rated_user_id = data.get("rated_user_id")
+    stars = data.get("stars")
+    comment = data.get("comment", "")
+    reserva_id = data.get("reserva_id")
+
+    try:
+        rated_user_id = int(rated_user_id)
+        stars = int(stars)
+    except (TypeError, ValueError):
+        return jsonify({"mensaje": "La calificación enviada no es válida."}), 400
+
+    if stars < 1 or stars > 5:
+        return jsonify({"mensaje": "La calificación debe ser de 1 a 5 estrellas."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM ratings
+        WHERE reviewer_id = ?
+        AND rated_user_id = ?
+        """,
+        (reviewer_id, rated_user_id)
+    )
+
+    existing_rating = cursor.fetchone()
+
+    if existing_rating:
+        cursor.execute(
+            """
+            UPDATE ratings
+            SET stars = ?, comment = ?, created_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (stars, comment, existing_rating["id"])
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT INTO ratings (reviewer_id, rated_user_id, stars, comment)
+            VALUES (?, ?, ?, ?)
+            """,
+            (reviewer_id, rated_user_id, stars, comment)
+        )
+
+    if reserva_id:
+        try:
+            reserva_id = int(reserva_id)
+            cursor.execute(
+                """
+                UPDATE reservas
+                SET estado = 'CALIFICADA'
+                WHERE id = ?
+                AND alumno_id = ?
+                """,
+                (reserva_id, reviewer_id)
+            )
+        except (TypeError, ValueError):
+            pass
+
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT ROUND(AVG(stars), 1) AS promedio, COUNT(*) AS cantidad
+        FROM ratings
+        WHERE rated_user_id = ?
+        """,
+        (rated_user_id,)
+    )
+
+    summary = cursor.fetchone()
+    conn.close()
+
+    return jsonify({
+        "mensaje": "Calificación guardada correctamente.",
+        "rating": {
+            "rated_user_id": rated_user_id,
+            "promedio": summary["promedio"] or 0,
+            "cantidad": summary["cantidad"]
+        }
+    }), 201
+
+@app.route("/api/ratings/<int:user_id>", methods=["GET"])
+def api_get_rating(user_id):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT ROUND(AVG(stars), 1) AS promedio, COUNT(*) AS cantidad
+        FROM ratings
+        WHERE rated_user_id = ?
+        """,
+        (user_id,)
+    )
+
+    summary = cursor.fetchone()
+    conn.close()
+
+    return jsonify({
+        "rated_user_id": user_id,
+        "promedio": summary["promedio"] or 0,
+        "cantidad": summary["cantidad"]
+    }), 200
+
+def get_or_create_disponibilidad(cursor, profesor_id, turno):
+    partes = str(turno).split()
+    fecha = partes[0] if partes else "Sin fecha"
+    hora_inicio = partes[1] if len(partes) > 1 else "00:00"
+
+    try:
+        hora_fin = (
+            datetime.strptime(hora_inicio, "%H:%M") + timedelta(hours=1)
+        ).strftime("%H:%M")
+    except ValueError:
+        hora_fin = hora_inicio
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM disponibilidades
+        WHERE profesor_id = ?
+        AND fecha = ?
+        AND hora_inicio = ?
+        """,
+        (profesor_id, fecha, hora_inicio)
+    )
+
+    disponibilidad = cursor.fetchone()
+
+    if disponibilidad:
+        return disponibilidad["id"]
+
+    cursor.execute(
+        """
+        INSERT INTO disponibilidades (profesor_id, fecha, hora_inicio, hora_fin)
+        VALUES (?, ?, ?, ?)
+        """,
+        (profesor_id, fecha, hora_inicio, hora_fin)
+    )
+
+    return cursor.lastrowid
+
+def serialize_reserva(row):
+    return {
+        "id": row["id"],
+        "profesorId": row["profesor_id"],
+        "profesorNombre": row["profesor_nombre"],
+        "turno": row["turno"],
+        "estado": row["estado"],
+        "meet": row["meet"],
+        "checkAlumno": bool(row["confirmacion_alumno"]),
+        "checkProfesor": bool(row["confirmacion_profesor"]),
+        "fechaConfirmacion": row["fecha_confirmacion"],
+    }
+
+@app.route("/api/reservas", methods=["POST"])
+def api_create_reserva():
+    alumno_id = get_user_id_from_token()
+
+    if not alumno_id:
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"mensaje": "Faltan datos de reserva."}), 400
+
+    try:
+        profesor_id = int(data.get("profesor_id"))
+    except (TypeError, ValueError):
+        return jsonify({"mensaje": "Profesor inválido."}), 400
+
+    profesor_nombre = data.get("profesor_nombre") or "Profesor Loop"
+    turno = data.get("turno")
+    meet = data.get("meet") or "https://meet.google.com/demo-loop"
+
+    if not turno:
+        return jsonify({"mensaje": "Seleccioná un turno."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT tokens FROM users WHERE id = ?", (alumno_id,))
+    alumno = cursor.fetchone()
+
+    if not alumno:
+        conn.close()
+        return jsonify({"mensaje": "Usuario no encontrado."}), 404
+
+    if (alumno["tokens"] or 0) < 1:
+        conn.close()
+        return jsonify({"mensaje": "No tenés tokens suficientes para reservar."}), 400
+
+    disponibilidad_id = get_or_create_disponibilidad(cursor, profesor_id, turno)
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM reservas
+        WHERE disponibilidad_id = ?
+        AND estado = 'ACTIVA'
+        """,
+        (disponibilidad_id,)
+    )
+
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({"mensaje": "Ese horario ya fue reservado."}), 409
+
+    fecha_reserva = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    cursor.execute(
+        """
+        INSERT INTO reservas (
+            disponibilidad_id,
+            alumno_id,
+            profesor_id,
+            profesor_nombre,
+            turno,
+            estado,
+            meet,
+            fecha_reserva
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            disponibilidad_id,
+            alumno_id,
+            profesor_id,
+            profesor_nombre,
+            turno,
+            "ACTIVA",
+            meet,
+            fecha_reserva,
+        )
+    )
+
+    reserva_id = cursor.lastrowid
+
+    cursor.execute(
+        """
+        INSERT INTO asistencias (reserva_id, confirmacion_alumno, confirmacion_profesor)
+        VALUES (?, 0, 0)
+        """,
+        (reserva_id,)
+    )
+
+    cursor.execute(
+        "UPDATE users SET tokens = tokens - 1 WHERE id = ?",
+        (alumno_id,)
+    )
+
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT r.*, a.confirmacion_alumno, a.confirmacion_profesor, a.fecha_confirmacion
+        FROM reservas r
+        INNER JOIN asistencias a ON a.reserva_id = r.id
+        WHERE r.id = ?
+        """,
+        (reserva_id,)
+    )
+
+    reserva = cursor.fetchone()
+    conn.close()
+
+    return jsonify({
+        "mensaje": "Reserva creada correctamente.",
+        "reserva": serialize_reserva(reserva)
+    }), 201
+
+@app.route("/api/reservas/activa", methods=["GET"])
+def api_get_reserva_activa():
+    alumno_id = get_user_id_from_token()
+
+    if not alumno_id:
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT r.*, a.confirmacion_alumno, a.confirmacion_profesor, a.fecha_confirmacion
+        FROM reservas r
+        INNER JOIN asistencias a ON a.reserva_id = r.id
+        WHERE r.alumno_id = ?
+        AND r.estado IN ('ACTIVA', 'COMPLETADA')
+        ORDER BY r.id DESC
+        LIMIT 1
+        """,
+        (alumno_id,)
+    )
+
+    reserva = cursor.fetchone()
+    conn.close()
+
+    if not reserva:
+        return jsonify({"reserva": None}), 200
+
+    return jsonify({"reserva": serialize_reserva(reserva)}), 200
+
+@app.route("/api/reservas/<int:reserva_id>/cancelar", methods=["PATCH"])
+def api_cancel_reserva(reserva_id):
+    alumno_id = get_user_id_from_token()
+
+    if not alumno_id:
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, estado
+        FROM reservas
+        WHERE id = ?
+        AND alumno_id = ?
+        """,
+        (reserva_id, alumno_id)
+    )
+
+    reserva = cursor.fetchone()
+
+    if not reserva:
+        conn.close()
+        return jsonify({"mensaje": "Reserva no encontrada."}), 404
+
+    if reserva["estado"] == "CANCELADA":
+        conn.close()
+        return jsonify({"mensaje": "La reserva ya está cancelada."}), 400
+
+    cursor.execute("UPDATE reservas SET estado = 'CANCELADA' WHERE id = ?", (reserva_id,))
+    cursor.execute("UPDATE users SET tokens = tokens + 1 WHERE id = ?", (alumno_id,))
+
     conn.commit()
     conn.close()
 
-    return jsonify({"mensaje": "Postulación enviada correctamente."}), 200
+    return jsonify({"mensaje": "Reserva cancelada correctamente."}), 200
+
+def confirmar_reserva(reserva_id, campo):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM asistencias WHERE reserva_id = ?", (reserva_id,))
+    asistencia = cursor.fetchone()
+
+    if not asistencia:
+        conn.close()
+        return None, ("Asistencia no encontrada.", 404)
+
+    if asistencia[campo] == 1:
+        conn.close()
+        return None, ("Esa asistencia ya fue confirmada.", 400)
+
+    cursor.execute(
+        f"UPDATE asistencias SET {campo} = 1 WHERE reserva_id = ?",
+        (reserva_id,)
+    )
+
+    conn.commit()
+
+    cursor.execute("SELECT * FROM asistencias WHERE reserva_id = ?", (reserva_id,))
+    asistencia = cursor.fetchone()
+
+    if (
+        asistencia["confirmacion_alumno"] == 1
+        and asistencia["confirmacion_profesor"] == 1
+        and asistencia["fecha_confirmacion"] is None
+    ):
+        fecha_confirmacion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        cursor.execute(
+            "UPDATE asistencias SET fecha_confirmacion = ? WHERE reserva_id = ?",
+            (fecha_confirmacion, reserva_id)
+        )
+
+        cursor.execute(
+            "UPDATE reservas SET estado = 'COMPLETADA' WHERE id = ?",
+            (reserva_id,)
+        )
+
+        cursor.execute("SELECT profesor_id FROM reservas WHERE id = ?", (reserva_id,))
+        reserva = cursor.fetchone()
+
+        if reserva:
+            cursor.execute(
+                "UPDATE users SET tokens = tokens + 1 WHERE id = ?",
+                (reserva["profesor_id"],)
+            )
+
+        conn.commit()
+
+    cursor.execute(
+        """
+        SELECT r.*, a.confirmacion_alumno, a.confirmacion_profesor, a.fecha_confirmacion
+        FROM reservas r
+        INNER JOIN asistencias a ON a.reserva_id = r.id
+        WHERE r.id = ?
+        """,
+        (reserva_id,)
+    )
+
+    reserva_actualizada = cursor.fetchone()
+    conn.close()
+
+    return serialize_reserva(reserva_actualizada), None
+
+@app.route("/api/reservas/<int:reserva_id>/confirmar-alumno", methods=["PATCH"])
+def api_confirmar_alumno(reserva_id):
+    if not get_user_id_from_token():
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
+
+    reserva, error = confirmar_reserva(reserva_id, "confirmacion_alumno")
+
+    if error:
+        mensaje, status = error
+        return jsonify({"mensaje": mensaje}), status
+
+    return jsonify({"mensaje": "Alumno confirmado correctamente.", "reserva": reserva}), 200
+
+@app.route("/api/reservas/<int:reserva_id>/confirmar-profesor", methods=["PATCH"])
+def api_confirmar_profesor(reserva_id):
+    if not get_user_id_from_token():
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
+
+    reserva, error = confirmar_reserva(reserva_id, "confirmacion_profesor")
+
+    if error:
+        mensaje, status = error
+        return jsonify({"mensaje": mensaje}), status
+
+    return jsonify({"mensaje": "Profesor confirmado correctamente.", "reserva": reserva}), 200
 
 def main_page():
 
@@ -355,6 +890,17 @@ def api_perfil():
     )
 
     user = cursor.fetchone()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM profesor_postulaciones
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    postulacion = cursor.fetchone()
     conn.close()
 
     if not user:
@@ -368,6 +914,7 @@ def api_perfil():
             "tokens": user[3],
             "rol": user[4]
         },
+        "postulacion": serializar_postulacion(postulacion),
         "reservas": []
     }), 200
 
