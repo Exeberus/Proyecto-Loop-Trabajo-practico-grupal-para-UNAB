@@ -15,7 +15,11 @@ app = Flask(__name__)
 app.secret_key = '0f2e4c18ca9ae37290cad43b86fad8f65aad8cf682561b0b3a0650c80737df45'
 
 print("App iniciada")
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:4321", "http://127.0.0.1:4321"]}})
+CORS(app, resources={r"/api/*": {"origins": [
+    "http://localhost:4321",
+    "http://127.0.0.1:4321",
+    "https://loop-dwt.pages.dev"
+]}})
 
 
 
