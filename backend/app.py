@@ -9,11 +9,10 @@ from werkzeug.security import check_password_hash
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:4321"}})
 app.secret_key = '0f2e4c18ca9ae37290cad43b86fad8f65aad8cf682561b0b3a0650c80737df45'
 
 print("App iniciada")
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:4321", "http://127.0.0.1:4321"]}})
 
 
 
@@ -31,6 +30,18 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def get_user_id_from_token():
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "")
+
+    if not token.startswith("token-demo-"):
+        return None
+
+    try:
+        return int(token.replace("token-demo-", ""))
+    except ValueError:
+        return None
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
@@ -114,7 +125,7 @@ def api_login():
     if not check_password_hash(password_hash, password):
         intentos_actuales = user[5] or 0
         nuevos_intentos = intentos_actuales + 1
-        bloqueado = 1 if nuevos_intentos >= 5 else 0
+        bloqueado = 1 if nuevos_intentos >= 3 else 0
 
         cursor.execute("""
             UPDATE users
@@ -127,11 +138,11 @@ def api_login():
 
         if bloqueado == 1:
             return jsonify({
-                "mensaje": "Cuenta bloqueada tras 5 intentos fallidos."
+                "mensaje": "Cuenta bloqueada tras 3 intentos fallidos."
             }), 403
 
         return jsonify({
-            "mensaje": f"Email o contraseña incorrectos. Intentos: {nuevos_intentos}/5."
+            "mensaje": f"Email o contraseña incorrectos. Intentos: {nuevos_intentos}/3."
         }), 401
 
     cursor.execute("""
@@ -154,6 +165,40 @@ def api_login():
             "rol": user[7]
         }
     }), 200
+
+@app.route("/api/registro-profe", methods=["POST"])
+def api_registro_profe():
+    user_id = get_user_id_from_token()
+
+    if not user_id:
+        return jsonify({"mensaje": "Token inválido o inexistente."}), 401
+
+    materia = request.form.get("materia")
+    descripcion = request.form.get("descripcion")
+    dias = request.form.getlist("dias")
+    horarios = request.form.getlist("horarios")
+
+    if not materia or not descripcion or not dias or not horarios:
+        return jsonify({"mensaje": "Completá materia, descripción, días y horarios."}), 400
+
+    if "certificado" not in request.files:
+        return jsonify({"mensaje": "Adjuntá el certificado de materias aprobadas."}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({"mensaje": "Usuario no encontrado."}), 404
+
+    cursor.execute("UPDATE users SET rol = ? WHERE id = ?", ("profe", user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"mensaje": "Postulación enviada correctamente."}), 200
 
 def main_page():
 
@@ -296,22 +341,16 @@ def logout():
 
 @app.route("/api/perfil", methods=["GET"])
 def api_perfil():
-    auth_header = request.headers.get("Authorization", "")
-    token = auth_header.replace("Bearer ", "")
+    user_id = get_user_id_from_token()
 
-    if not token.startswith("token-demo-"):
+    if not user_id:
         return jsonify({"mensaje": "Token inválido o inexistente."}), 401
-
-    try:
-        user_id = int(token.replace("token-demo-", ""))
-    except ValueError:
-        return jsonify({"mensaje": "Token inválido."}), 401
 
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, username, email FROM users WHERE id = ?",
+        "SELECT id, username, email, tokens, rol FROM users WHERE id = ?",
         (user_id,)
     )
 
@@ -326,8 +365,8 @@ def api_perfil():
             "id": user[0],
             "nombre": user[1],
             "email": user[2],
-            "tokens": 2,
-            "rol": "alumno"
+            "tokens": user[3],
+            "rol": user[4]
         },
         "reservas": []
     }), 200
