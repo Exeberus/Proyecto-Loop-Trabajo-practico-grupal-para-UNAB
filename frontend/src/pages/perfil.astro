@@ -262,10 +262,11 @@ import Layout from '../layouts/Layout.astro';
     function cargarPerfilEditado() {
   const usuarioGuardado = localStorage.getItem("usuario");
   const usuarioActual = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
+  const emailPerfil = String(usuarioActual?.email ?? "").trim().toLowerCase();
   const identificador =
-    usuarioActual?.id ??
-    usuarioActual?.email ??
-    usuarioActual?.nombre ??
+    emailPerfil ||
+    usuarioActual?.id ||
+    usuarioActual?.nombre ||
     "anonimo";
 
   const perfilGuardado = localStorage.getItem(`perfilDemo:${identificador}`);

@@ -141,10 +141,11 @@ const materiasPerfil = [
     const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
 
     function obtenerClavePerfil(usuarioActual: any) {
+      const email = String(usuarioActual?.email ?? "").trim().toLowerCase();
       const identificador =
-        usuarioActual?.id ??
-        usuarioActual?.email ??
-        usuarioActual?.nombre ??
+        email ||
+        usuarioActual?.id ||
+        usuarioActual?.nombre ||
         "anonimo";
 
       return `perfilDemo:${identificador}`;
