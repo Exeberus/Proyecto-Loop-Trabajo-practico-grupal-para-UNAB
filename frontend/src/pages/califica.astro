@@ -102,7 +102,7 @@ import Layout from "../layouts/Layout.astro";
               ¿No se presentó? Comunicate con nosotros.
             </p>
             <a
-              href="mailto:loop@gmail.com"
+              href="mailto:loop.unab@gmail.com"
               class="mt-3 inline-block rounded-full bg-[#0047ff] px-7 py-3 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
             >
               Ayuda
@@ -121,14 +121,14 @@ import Layout from "../layouts/Layout.astro";
   </main>
 
   <script>
-    const API_URL = "https://loop-backend-b1g8.onrender.com";
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
     const token = localStorage.getItem("token");
 
     if (!token) {
       window.location.href = "/login";
     }
-
-    const reservaGuardada = localStorage.getItem("reservaDemo");
 
     const textoReserva = document.getElementById("textoReserva") as HTMLParagraphElement | null;
     const formCalificacion = document.getElementById("formCalificacion") as HTMLFormElement | null;
@@ -143,12 +143,41 @@ import Layout from "../layouts/Layout.astro";
     );
 
     let ratingSeleccionado = 0;
+    let reservaActual: any = null;
 
-    if (reservaGuardada && textoReserva) {
-      const reserva = JSON.parse(reservaGuardada);
-      textoReserva.textContent = `Clase con ${reserva.profesorNombre} - ${reserva.turno}`;
-    } else {
-      mostrarMensaje("No encontramos una clase pendiente para calificar. Volvé a mensajes para revisar tu Loop.", "error");
+    async function cargarReservaParaCalificar() {
+      try {
+        const respuesta = await fetch(`${API_URL}/api/reservas/para-calificar`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await respuesta.json();
+
+        if (!respuesta.ok || !data.reserva) {
+          mostrarMensaje("No encontramos una clase pendiente para calificar. Volvé a notificaciones para revisar tu Loop.", "error");
+          btnEnviarCalificacion?.setAttribute("disabled", "true");
+          return;
+        }
+
+        reservaActual = data.reserva;
+
+        if (textoReserva) {
+          textoReserva.textContent = `Profesor: ${reservaActual.targetUserName} - ${reservaActual.turno}`;
+        }
+
+        if (!["COMPLETADA", "CALIFICADA"].includes(reservaActual.estado)) {
+          mostrarMensaje("Primero hay que completar el check-in de alumno y profesor desde Notificaciones.", "error");
+          btnEnviarCalificacion?.setAttribute("disabled", "true");
+          return;
+        }
+
+        btnEnviarCalificacion?.removeAttribute("disabled");
+      } catch (error) {
+        mostrarMensaje("No se pudo conectar con el servidor. Verificá que Flask esté ejecutándose.", "error");
+        btnEnviarCalificacion?.setAttribute("disabled", "true");
+      }
     }
 
     function mostrarMensaje(texto: string, tipo: "error" | "ok") {
@@ -210,9 +239,7 @@ import Layout from "../layouts/Layout.astro";
         return;
       }
 
-      const reserva = reservaGuardada ? JSON.parse(reservaGuardada) : null;
-
-      if (!reserva?.profesorId) {
+      if (!reservaActual?.targetUserId) {
         mostrarMensaje("No encontramos la reserva asociada a esta calificación.", "error");
         return;
       }
@@ -222,23 +249,16 @@ import Layout from "../layouts/Layout.astro";
         btnEnviarCalificacion.textContent = "Enviando...";
       }
 
-      const feedback = {
-        rating: ratingSeleccionado,
-        comentario: comentario?.value ?? "",
-        reserva,
-        fecha: new Date().toISOString(),
-      };
-
       try {
-        const respuesta = await fetch(`${API_URL}/api/ratings`, {
+        const respuesta = await fetch(`${API_URL}/api/ratings/reserva`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            rated_user_id: reserva.profesorId,
-            reserva_id: reserva.id,
+            rated_user_id: reservaActual.targetUserId,
+            reserva_id: reservaActual.id,
             stars: ratingSeleccionado,
             comment: comentario?.value ?? "",
           }),
@@ -251,18 +271,9 @@ import Layout from "../layouts/Layout.astro";
           return;
         }
 
-        localStorage.setItem("feedbackDemo", JSON.stringify({
-          ...feedback,
-          promedioActualizado: data.rating?.promedio ?? ratingSeleccionado,
-        }));
-
         mostrarMensaje("Calificación enviada correctamente. Gracias por cerrar el Loop.", "ok");
 
         setTimeout(() => {
-          localStorage.removeItem("reservaDemo");
-          localStorage.removeItem("checkAlumno");
-          localStorage.removeItem("checkProfesor");
-
           window.location.href = "/perfil";
         }, 1200);
       } catch (error) {
@@ -277,5 +288,7 @@ import Layout from "../layouts/Layout.astro";
         }
       }
     });
+
+    cargarReservaParaCalificar();
   </script>
 </Layout>

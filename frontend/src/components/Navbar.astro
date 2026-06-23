@@ -25,6 +25,10 @@ import logo from "../assets/logo.png";
           Acerca
         </a>
 
+        <a id="navAdmin" href="/admin/postulaciones" class="hidden hover:text-[#0047ff]">
+          Admin
+        </a>
+
         <a
           href="/login"
           class="rounded-full bg-[#0047ff] px-5 py-2 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
@@ -46,7 +50,11 @@ import logo from "../assets/logo.png";
         </div>
 
         <a href="/mensajes" class="hover:text-[#0047ff]">
-          Mensajes
+          Notificaciones
+        </a>
+
+        <a href="/chat" class="hover:text-[#0047ff]">
+          Mensajería
         </a>
 
         <a href="/profesores" class="hover:text-[#0047ff]">
@@ -95,6 +103,10 @@ import logo from "../assets/logo.png";
       if (usuarioGuardado && navTokens) {
         const usuario = JSON.parse(usuarioGuardado);
         navTokens.textContent = usuario.tokens ?? "0";
+
+        if (usuario.rol === "admin") {
+          document.getElementById("navAdmin")?.classList.remove("hidden");
+        }
       }
     } else {
       navLogueado?.classList.add("hidden");

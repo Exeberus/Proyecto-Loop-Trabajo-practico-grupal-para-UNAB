@@ -16,8 +16,7 @@ const materias = [
 ];
 
 const profesoresDestacados = [...profesores]
-  .sort((a, b) => b.rating - a.rating)
-  .slice(0, 4);
+  .sort((a, b) => b.rating - a.rating);
 ---
 
 <Layout title="Inicio">
@@ -134,10 +133,14 @@ const profesoresDestacados = [...profesores]
         Los profes mejor evaluados
       </h2>
 
-      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div id="grillaDestacados" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {
           profesoresDestacados.map((profe) => (
-            <article class="rounded-[20px] bg-[#0047ff] p-3 shadow-md transition hover:-translate-y-1 hover:shadow-xl">
+            <article
+              class="profe-destacado rounded-[20px] bg-[#0047ff] p-3 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+              data-profesor-id={profe.id}
+              data-rating-base={profe.rating}
+            >
               <img
                 src={profe.imagen}
                 alt={`Foto de ${profe.nombre}`}
@@ -147,7 +150,10 @@ const profesoresDestacados = [...profesores]
               <div class="mt-3">
                 <h3 class="text-lg font-bold text-white">{profe.nombre}</h3>
 
-                <div class="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-[#0047ff]">
+                <div
+                  class="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-[#0047ff]"
+                  data-rating-profesor={profe.id}
+                >
                   ★ {profe.rating}
                 </div>
 
@@ -174,4 +180,59 @@ const profesoresDestacados = [...profesores]
       </div>
     </section>
   </main>
+
+  <script>
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
+
+    async function cargarRatingsReales() {
+      const grillaDestacados = document.getElementById("grillaDestacados");
+      const tarjetasDestacadas = Array.from(
+        document.querySelectorAll<HTMLElement>(".profe-destacado")
+      );
+      const badgesRating = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-rating-profesor]")
+      );
+
+      await Promise.all(
+        badgesRating.map(async (badge) => {
+          const profesorId = badge.dataset.ratingProfesor;
+
+          if (!profesorId) return;
+
+          try {
+            const respuesta = await fetch(`${API_URL}/api/ratings/${profesorId}`);
+            const data = await respuesta.json();
+
+            if (!respuesta.ok || !data.cantidad) return;
+
+            const tarjeta = badge.closest<HTMLElement>(".profe-destacado");
+
+            if (tarjeta) {
+              tarjeta.dataset.ratingReal = String(data.promedio);
+            }
+
+            badge.textContent = `★ ${data.promedio}`;
+            badge.title = `${data.cantidad} calificación${data.cantidad === 1 ? "" : "es"}`;
+          } catch (error) {
+            console.error("No se pudo cargar el rating del profesor", profesorId);
+          }
+        })
+      );
+
+      const tarjetasOrdenadas = tarjetasDestacadas.sort((a, b) => {
+        const ratingA = Number(a.dataset.ratingReal ?? a.dataset.ratingBase ?? 0);
+        const ratingB = Number(b.dataset.ratingReal ?? b.dataset.ratingBase ?? 0);
+        return ratingB - ratingA;
+      });
+
+      tarjetasOrdenadas.forEach((tarjeta, index) => {
+        tarjeta.classList.toggle("hidden", index >= 4);
+        grillaDestacados?.appendChild(tarjeta);
+      });
+    }
+
+    cargarRatingsReales();
+  </script>
 </Layout>

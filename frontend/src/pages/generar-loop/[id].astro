@@ -135,7 +135,9 @@ const agendaProfesor = profesor.disponibilidad ?? agenda;
   </main>
 
   <script>
-    const API_URL = "https://loop-backend-b1g8.onrender.com";
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
 
     const formTurno = document.getElementById("formTurno") as HTMLFormElement | null;
     const mensajeTurno = document.getElementById("mensajeTurno") as HTMLParagraphElement | null;
@@ -210,10 +212,6 @@ const agendaProfesor = profesor.disponibilidad ?? agenda;
             return;
           }
 
-          localStorage.setItem("reservaDemo", JSON.stringify(data.reserva));
-          localStorage.removeItem("checkAlumno");
-          localStorage.removeItem("checkProfesor");
-
           const usuarioGuardado = localStorage.getItem("usuario");
           if (usuarioGuardado) {
             const usuario = JSON.parse(usuarioGuardado);
@@ -221,7 +219,7 @@ const agendaProfesor = profesor.disponibilidad ?? agenda;
             localStorage.setItem("usuario", JSON.stringify(usuario));
           }
 
-          mostrarMensaje("Turno reservado correctamente. Redirigiendo a mensajes...", "ok");
+          mostrarMensaje("Turno reservado correctamente. Redirigiendo a notificaciones...", "ok");
 
           setTimeout(() => {
             window.location.href = "/mensajes";

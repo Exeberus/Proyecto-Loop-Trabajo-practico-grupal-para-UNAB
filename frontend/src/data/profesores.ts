@@ -14,7 +14,7 @@ export type Profesor = {
 
 export const profesores: Profesor[] = [
   {
-    id: 1,
+    id: 1001,
     nombre: "Gabriel Avila",
     email: "GabrielAvila@gmail.com",
     rating: 5.0,
@@ -29,7 +29,7 @@ export const profesores: Profesor[] = [
     ],
   },
   {
-    id: 2,
+    id: 1002,
     nombre: "Maximo Barraza",
     email: "maxibarraza@gmail.com",
     rating: 4.9,
@@ -43,7 +43,7 @@ export const profesores: Profesor[] = [
     ],
   },
   {
-    id: 3,
+    id: 1003,
     nombre: "Tomas Tagliani",
     email: "tomas.tagliani@gmail.com",
     rating: 5.0,
@@ -57,7 +57,7 @@ export const profesores: Profesor[] = [
     ],
   },
     {
-    id: 4,
+    id: 1004,
     nombre: "Abril Cejas",
     email: "Abril.Cejas@gmail.com",
     rating: 4.9,
@@ -71,7 +71,7 @@ export const profesores: Profesor[] = [
     ],
   },
     {
-    id: 5,
+    id: 1005,
     nombre: "Franco Gallardo",
     email: "GallardoFranco@gmail.com",
     rating: 4.0,
@@ -85,7 +85,7 @@ export const profesores: Profesor[] = [
     ],
   },
     {
-    id: 6,
+    id: 1006,
     nombre: "Lautaro Rodriguez",
     email: "LautyRodriguez@gmail.com",
     rating: 4.8,

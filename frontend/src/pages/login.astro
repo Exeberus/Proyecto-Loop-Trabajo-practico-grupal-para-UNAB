@@ -91,7 +91,9 @@ import Layout from '../layouts/Layout.astro';
   </main>
 
  <script>
-  const API_URL = "https://loop-backend-b1g8.onrender.com";
+  const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? "http://127.0.0.1:5000"
+    : "https://loop-backend-b1g8.onrender.com";
 
   const formLogin = document.getElementById("formLogin") as HTMLFormElement | null;
   const mensajeLogin = document.getElementById("mensajeLogin") as HTMLParagraphElement | null;
@@ -152,7 +154,8 @@ import Layout from '../layouts/Layout.astro';
         mostrarMensaje("Inicio de sesión correcto. Redirigiendo...", "ok");
 
         setTimeout(() => {
-          window.location.href = "/perfil";
+          window.location.href =
+            data.usuario?.rol === "admin" ? "/admin/postulaciones" : "/perfil";
         }, 800);
       } catch (error) {
         mostrarMensaje(

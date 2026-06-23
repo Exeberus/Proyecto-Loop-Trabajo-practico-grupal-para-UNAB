@@ -61,6 +61,7 @@ import { profesores } from "../data/profesores";
           profesores.map((profe) => (
             <article
               class="profe-card rounded-[24px] bg-[#0047ff] p-3 shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+              data-profesor-id={profe.id}
               data-nombre={profe.nombre}
               data-materias={profe.materias.join(" ")}
             >
@@ -77,7 +78,10 @@ import { profesores } from "../data/profesores";
                 
                 <div class="mt-8 flex items-end justify-between gap-2">
                   <div>
-                    <span class="mb-2 inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#0047ff]">
+                    <span
+                      class="mb-2 inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#0047ff]"
+                      data-rating-profesor={profe.id}
+                    >
                       {profe.rating} ★
                     </span>
 
@@ -158,10 +162,10 @@ import { profesores } from "../data/profesores";
           </p>
 
           <a
-            href="mailto:loop@gmail.com"
+            href="mailto:loop.unab@gmail.com"
             class="inline-block rounded-full bg-[#0047ff] px-6 py-2 text-[10px] font-bold uppercase text-white transition hover:bg-blue-700"
           >
-            loop@gmail.com
+            loop.unab@gmail.com
           </a>
         </div>
       </article>
@@ -169,6 +173,10 @@ import { profesores } from "../data/profesores";
   </main>
 
   <script>
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
+
     const buscadorProfesores = document.getElementById(
       "buscadorProfesores"
     ) as HTMLInputElement | null;
@@ -189,9 +197,9 @@ import { profesores } from "../data/profesores";
       "sinResultados"
     ) as HTMLParagraphElement | null;
 
-    const tarjetasProfesores = Array.from(
-      document.querySelectorAll<HTMLElement>(".profe-card")
-    );
+    function obtenerTarjetasProfesores() {
+      return Array.from(document.querySelectorAll<HTMLElement>(".profe-card"));
+    }
 
     const parametros = new URLSearchParams(window.location.search);
     const materiaUrl = parametros.get("materia") ?? "";
@@ -221,7 +229,7 @@ import { profesores } from "../data/profesores";
 
       let cantidadVisibles = 0;
 
-      tarjetasProfesores.forEach((tarjeta) => {
+      obtenerTarjetasProfesores().forEach((tarjeta) => {
         const nombre = normalizarTexto(tarjeta.dataset.nombre ?? "");
         const materias = normalizarTexto(tarjeta.dataset.materias ?? "");
 
@@ -252,9 +260,133 @@ import { profesores } from "../data/profesores";
       }
     }
 
+    type ProfesorBackend = {
+      id: number;
+      nombre: string;
+      email: string;
+      rating: number;
+      ratingCantidad: number;
+      materias: string[];
+      imagen: string;
+      descripcion: string;
+    };
+
+    function imagenProfesor(profesor: ProfesorBackend) {
+      return profesor.imagen || "/profes/profe1.jpg";
+    }
+
+    function crearCardProfesor(profesor: ProfesorBackend) {
+      const article = document.createElement("article");
+      article.className =
+        "profe-card rounded-[24px] bg-[#0047ff] p-3 shadow-md transition hover:-translate-y-1 hover:shadow-xl";
+      article.dataset.profesorId = String(profesor.id);
+      article.dataset.nombre = profesor.nombre;
+      article.dataset.materias = profesor.materias.join(" ");
+
+      const ratingTexto =
+        Number(profesor.ratingCantidad ?? 0) > 0
+          ? `${profesor.rating} ★`
+          : "Nuevo";
+
+      article.innerHTML = `
+        <img
+          src="${imagenProfesor(profesor)}"
+          alt="Foto de ${profesor.nombre}"
+          class="h-48 w-full rounded-[18px] object-cover"
+        />
+
+        <div class="px-1 pb-2 pt-3">
+          <h2 class="text-2xl font-bold leading-none text-white">
+            ${profesor.nombre}
+          </h2>
+
+          <div class="mt-8 flex items-end justify-between gap-2">
+            <div>
+              <span class="mb-2 inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#0047ff]">
+                ${ratingTexto}
+              </span>
+
+              <div class="flex flex-wrap gap-1">
+                ${profesor.materias
+                  .map(
+                    (materia) =>
+                      `<span class="rounded-full border border-white px-3 py-1 text-[8px] font-bold uppercase text-white">${materia}</span>`
+                  )
+                  .join("")}
+              </div>
+            </div>
+
+            <a
+              href="/profe?id=${profesor.id}"
+              class="shrink-0 rounded-full bg-white px-4 py-2 text-[9px] font-bold uppercase text-[#0047ff] transition hover:bg-slate-100"
+            >
+              Ver mas
+            </a>
+          </div>
+        </div>
+      `;
+
+      return article;
+    }
+
+    async function cargarProfesoresAprobados() {
+      const grillaProfesores = document.getElementById("grillaProfesores");
+      if (!grillaProfesores) return;
+
+      try {
+        const respuesta = await fetch(`${API_URL}/api/profesores`);
+        const data = await respuesta.json();
+
+        if (!respuesta.ok || !Array.isArray(data.profesores)) return;
+
+        data.profesores.forEach((profesor: ProfesorBackend) => {
+          if (document.querySelector(`[data-profesor-id="${profesor.id}"][data-origen="backend"]`)) {
+            return;
+          }
+
+          const card = crearCardProfesor(profesor);
+          card.dataset.origen = "backend";
+          grillaProfesores.appendChild(card);
+        });
+
+        filtrarProfesores();
+      } catch (error) {
+        console.error("No se pudieron cargar profesores aprobados");
+      }
+    }
+
     actualizarChipFiltro();
     filtrarProfesores();
+    cargarProfesoresAprobados();
 
     buscadorProfesores?.addEventListener("input", filtrarProfesores);
+
+    async function cargarRatingsReales() {
+      const badgesRating = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-rating-profesor]")
+      );
+
+      await Promise.all(
+        badgesRating.map(async (badge) => {
+          const profesorId = badge.dataset.ratingProfesor;
+
+          if (!profesorId) return;
+
+          try {
+            const respuesta = await fetch(`${API_URL}/api/ratings/${profesorId}`);
+            const data = await respuesta.json();
+
+            if (!respuesta.ok || !data.cantidad) return;
+
+            badge.textContent = `${data.promedio} ★`;
+            badge.title = `${data.cantidad} calificación${data.cantidad === 1 ? "" : "es"}`;
+          } catch (error) {
+            console.error("No se pudo cargar el rating del profesor", profesorId);
+          }
+        })
+      );
+    }
+
+    cargarRatingsReales();
   </script>
 </Layout>

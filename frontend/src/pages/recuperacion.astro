@@ -2,16 +2,16 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Recuperar contraseña">
-  <main class="flex min-h-[calc(100vh-160px)] items-center justify-center bg-slate-50 px-5 py-12">
+<Layout title="Recuperar contrasena">
+  <main class="flex min-h-[calc(100vh-160px)] items-center justify-center bg-[#f5f5f5] px-5 py-12">
     <section class="w-full max-w-md rounded-[28px] border border-slate-100 bg-white p-8 shadow-xl md:p-10">
       <div class="mb-8 text-center">
         <h1 class="mb-2 text-3xl font-extrabold text-[#0047ff]">
-          Recuperá tu acceso
+          Recupera tu acceso
         </h1>
 
         <p class="text-sm font-medium leading-relaxed text-slate-500">
-          Ingresá tu correo y te enviaremos las instrucciones para restablecer la contraseña.
+          Ingresa tu correo, genera un codigo de recuperacion y crea una nueva contrasena.
         </p>
       </div>
 
@@ -35,6 +35,44 @@ import Layout from "../layouts/Layout.astro";
           />
         </div>
 
+        <div id="camposReset" class="hidden flex-col gap-5">
+          <div>
+            <label
+              for="codigo"
+              class="mb-2 block text-xs font-bold uppercase tracking-widest text-[#081c44]"
+            >
+              Codigo
+            </label>
+
+            <input
+              type="text"
+              id="codigo"
+              name="codigo"
+              inputmode="numeric"
+              placeholder="Codigo de recuperacion"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#0047ff] focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+
+          <div>
+            <label
+              for="password"
+              class="mb-2 block text-xs font-bold uppercase tracking-widest text-[#081c44]"
+            >
+              Nueva contrasena
+            </label>
+
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Minimo 6 caracteres"
+              autocomplete="new-password"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#0047ff] focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+        </div>
+
         <p
           id="mensajeRecuperacion"
           class="hidden rounded-xl px-4 py-3 text-sm font-semibold"
@@ -42,8 +80,9 @@ import Layout from "../layouts/Layout.astro";
         </p>
 
         <button
+          id="btnRecuperacion"
           type="submit"
-          class="mt-2 w-full rounded-full bg-[#0047ff] px-8 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-md transition hover:bg-blue-700"
+          class="mt-2 w-full rounded-full bg-[#0047ff] px-8 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Enviar instrucciones
         </button>
@@ -59,18 +98,102 @@ import Layout from "../layouts/Layout.astro";
   </main>
 
   <script>
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
+
     const formRecuperacion = document.getElementById("formRecuperacion") as HTMLFormElement | null;
     const mensajeRecuperacion = document.getElementById("mensajeRecuperacion") as HTMLParagraphElement | null;
+    const camposReset = document.getElementById("camposReset") as HTMLDivElement | null;
+    const btnRecuperacion = document.getElementById("btnRecuperacion") as HTMLButtonElement | null;
+    const inputEmail = document.getElementById("email") as HTMLInputElement | null;
+    const inputCodigo = document.getElementById("codigo") as HTMLInputElement | null;
+    const inputPassword = document.getElementById("password") as HTMLInputElement | null;
 
-    formRecuperacion?.addEventListener("submit", (evento) => {
-      evento.preventDefault();
+    let pasoReset = false;
 
+    function mostrarMensaje(texto: string, tipo: "error" | "ok") {
       if (!mensajeRecuperacion) return;
 
-      mensajeRecuperacion.textContent =
-        "Si el correo está registrado, recibirás un enlace de recuperación.";
-      mensajeRecuperacion.className =
-        "rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-600";
+      mensajeRecuperacion.textContent = texto;
+      mensajeRecuperacion.className = tipo === "error"
+        ? "rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
+        : "rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-600";
+    }
+
+    formRecuperacion?.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+
+      const email = inputEmail?.value.trim() ?? "";
+
+      if (!email) {
+        mostrarMensaje("Ingresa tu email.", "error");
+        return;
+      }
+
+      if (btnRecuperacion) {
+        btnRecuperacion.disabled = true;
+        btnRecuperacion.textContent = pasoReset ? "Actualizando..." : "Enviando...";
+      }
+
+      try {
+        if (!pasoReset) {
+          const respuesta = await fetch(`${API_URL}/api/recuperacion`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+
+          const data = await respuesta.json();
+
+          if (!respuesta.ok) {
+            mostrarMensaje(data.mensaje || "No se pudo iniciar la recuperacion.", "error");
+            return;
+          }
+
+          pasoReset = true;
+          camposReset?.classList.remove("hidden");
+          camposReset?.classList.add("flex");
+
+          mostrarMensaje(
+            data.codigo_demo
+              ? `Codigo de prueba: ${data.codigo_demo}`
+              : data.mensaje,
+            "ok"
+          );
+
+          return;
+        }
+
+        const codigo = inputCodigo?.value.trim() ?? "";
+        const password = inputPassword?.value ?? "";
+
+        const respuesta = await fetch(`${API_URL}/api/recuperacion/reset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, codigo, password }),
+        });
+
+        const data = await respuesta.json();
+
+        if (!respuesta.ok) {
+          mostrarMensaje(data.mensaje || "No se pudo actualizar la contrasena.", "error");
+          return;
+        }
+
+        mostrarMensaje("Contrasena actualizada. Ya podes iniciar sesion.", "ok");
+
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1200);
+      } catch (error) {
+        mostrarMensaje("No se pudo conectar con el servidor.", "error");
+      } finally {
+        if (btnRecuperacion) {
+          btnRecuperacion.disabled = false;
+          btnRecuperacion.textContent = pasoReset ? "Actualizar contrasena" : "Enviar instrucciones";
+        }
+      }
     });
   </script>
 </Layout>

@@ -1,0 +1,216 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Perfil del profesor">
+  <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
+    <div class="absolute left-1/2 top-24 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-[#0047ff]"></div>
+    <div class="absolute left-[58%] top-52 -z-0 h-72 w-72 rounded-full bg-teal-300"></div>
+
+    <section class="relative z-10 mx-auto max-w-6xl">
+      <article class="rounded-[26px] bg-white p-5 shadow-xl md:p-6">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-[180px_1fr_1.4fr] md:items-center">
+          <div>
+            <img
+              id="fotoProfesor"
+              src="/profes/profe1.jpg"
+              alt="Foto del profesor"
+              class="h-48 w-full rounded-[18px] object-cover md:h-44"
+            />
+          </div>
+
+          <div>
+            <p class="text-sm font-bold text-[#081c44]">
+              Profesor
+            </p>
+
+            <h1 id="nombreProfesor" class="mt-1 text-3xl font-extrabold leading-none text-[#0047ff] md:text-4xl">
+              Cargando...
+            </h1>
+
+            <p id="emailProfesor" class="mt-2 break-all text-[10px] font-bold uppercase tracking-wide text-[#0047ff]"></p>
+
+            <div class="mt-5">
+              <p class="mb-2 text-sm font-bold text-[#081c44]">
+                Materias
+              </p>
+
+              <div id="materiasProfesor" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+
+          <div class="flex h-full flex-col justify-between gap-5">
+            <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <p id="descripcionProfesor" class="text-sm font-medium leading-relaxed text-slate-600">
+                Buscando perfil aprobado...
+              </p>
+            </div>
+
+            <div class="flex flex-wrap justify-end gap-3">
+              <a
+                id="linkMensaje"
+                href="/chat"
+                class="rounded-full border border-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white"
+              >
+                Mensaje
+              </a>
+
+              <a
+                id="linkReserva"
+                href="/generar-loop"
+                class="rounded-full bg-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-blue-700"
+              >
+                Conectemos
+              </a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <section id="bloqueDisponibilidad" class="mt-6 hidden rounded-[24px] bg-white p-6 shadow-lg">
+        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-widest text-[#0047ff]">
+              Disponibilidad
+            </p>
+            <h2 class="mt-1 text-2xl font-extrabold text-[#081c44]">
+              Proximos horarios para generar el Loop
+            </h2>
+          </div>
+        </div>
+
+        <div id="disponibilidadProfesor" class="grid grid-cols-1 gap-3 md:grid-cols-3"></div>
+      </section>
+
+      <p id="mensajeProfesor" class="mt-6 hidden rounded-2xl bg-red-50 px-5 py-4 text-sm font-bold text-red-600"></p>
+
+      <div class="mt-6">
+        <a
+          href="/profesores"
+          class="text-[10px] font-bold uppercase tracking-wide text-[#0047ff] underline"
+        >
+          &lt; Volver
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
+
+    type ProfesorBackend = {
+      id: number;
+      nombre: string;
+      email: string;
+      rating: number;
+      ratingCantidad: number;
+      materias: string[];
+      imagen: string;
+      descripcion: string;
+      disponibilidad: { dia: string; horarios: string[] }[];
+    };
+
+    const parametros = new URLSearchParams(window.location.search);
+    const profesorId = Number(parametros.get("id"));
+
+    const fotoProfesor = document.getElementById("fotoProfesor") as HTMLImageElement | null;
+    const nombreProfesor = document.getElementById("nombreProfesor") as HTMLElement | null;
+    const emailProfesor = document.getElementById("emailProfesor") as HTMLElement | null;
+    const materiasProfesor = document.getElementById("materiasProfesor") as HTMLElement | null;
+    const descripcionProfesor = document.getElementById("descripcionProfesor") as HTMLElement | null;
+    const disponibilidadProfesor = document.getElementById("disponibilidadProfesor") as HTMLElement | null;
+    const bloqueDisponibilidad = document.getElementById("bloqueDisponibilidad") as HTMLElement | null;
+    const mensajeProfesor = document.getElementById("mensajeProfesor") as HTMLElement | null;
+    const linkMensaje = document.getElementById("linkMensaje") as HTMLAnchorElement | null;
+    const linkReserva = document.getElementById("linkReserva") as HTMLAnchorElement | null;
+
+    function mostrarError(texto: string) {
+      if (!mensajeProfesor) return;
+      mensajeProfesor.textContent = texto;
+      mensajeProfesor.classList.remove("hidden");
+    }
+
+    function chip(texto: string) {
+      const span = document.createElement("span");
+      span.className =
+        "rounded-full border border-[#0047ff] px-3 py-1 text-[9px] font-bold uppercase text-[#0047ff]";
+      span.textContent = texto;
+      return span;
+    }
+
+    function cargarProfesor(profesor: ProfesorBackend) {
+      if (fotoProfesor) fotoProfesor.src = profesor.imagen || "/profes/profe1.jpg";
+      if (nombreProfesor) nombreProfesor.textContent = profesor.nombre;
+      if (emailProfesor) emailProfesor.textContent = profesor.email;
+      if (descripcionProfesor) descripcionProfesor.textContent = profesor.descripcion || "Profesor aprobado por Loop.";
+
+      materiasProfesor?.replaceChildren();
+      profesor.materias.forEach((materia) => materiasProfesor?.appendChild(chip(materia)));
+      materiasProfesor?.appendChild(chip(`★ ${profesor.rating || "Nuevo"}`));
+
+      if (linkMensaje) {
+        linkMensaje.href = `/chat?user=${profesor.id}&name=${encodeURIComponent(profesor.nombre)}`;
+      }
+
+      if (linkReserva) {
+        linkReserva.href = `/generar-loop?id=${profesor.id}`;
+      }
+
+      disponibilidadProfesor?.replaceChildren();
+      if (profesor.disponibilidad?.length) {
+        bloqueDisponibilidad?.classList.remove("hidden");
+
+        profesor.disponibilidad.forEach((bloque) => {
+          const article = document.createElement("article");
+          article.className = "rounded-2xl bg-slate-50 p-4";
+          article.innerHTML = `
+            <p class="mb-3 text-sm font-extrabold text-[#081c44]">${bloque.dia}</p>
+            <div class="flex flex-wrap gap-2">
+              ${bloque.horarios
+                .map(
+                  (horario) =>
+                    `<span class="rounded-full border border-[#081c44] px-3 py-1 text-[10px] font-bold text-[#081c44]">${horario}</span>`
+                )
+                .join("")}
+            </div>
+          `;
+          disponibilidadProfesor?.appendChild(article);
+        });
+      }
+    }
+
+    async function iniciar() {
+      if (!profesorId) {
+        mostrarError("No encontramos el profesor solicitado.");
+        return;
+      }
+
+      try {
+        const respuesta = await fetch(`${API_URL}/api/profesores`);
+        const data = await respuesta.json();
+
+        if (!respuesta.ok || !Array.isArray(data.profesores)) {
+          mostrarError("No se pudo cargar el perfil del profesor.");
+          return;
+        }
+
+        const profesor = data.profesores.find(
+          (item: ProfesorBackend) => Number(item.id) === profesorId
+        );
+
+        if (!profesor) {
+          mostrarError("Este profesor todavia no esta aprobado o no existe.");
+          return;
+        }
+
+        cargarProfesor(profesor);
+      } catch (error) {
+        mostrarError("No se pudo conectar con el servidor.");
+      }
+    }
+
+    iniciar();
+  </script>
+</Layout>

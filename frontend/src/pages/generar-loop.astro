@@ -1,0 +1,244 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Generemos el Loop">
+  <main class="relative min-h-[calc(100vh-160px)] overflow-hidden bg-[#f5f5f5] px-5 py-12">
+    <div class="absolute left-[45%] top-20 z-0 h-72 w-72 rounded-full bg-[#0047ff]"></div>
+    <div class="absolute left-[35%] top-52 z-0 h-64 w-64 rounded-full bg-teal-300"></div>
+
+    <section class="relative z-10 mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 md:grid-cols-[0.8fr_1.5fr]">
+      <section>
+        <h1 class="mb-6 text-4xl font-extrabold leading-none text-[#0047ff] md:text-5xl">
+          Generemos<br />
+          el loop
+        </h1>
+
+        <p class="max-w-sm text-sm font-semibold leading-relaxed text-[#081c44]">
+          Una vez que selecciones el horario, te enviaremos una confirmacion y el link para ingresar a la clase.
+        </p>
+
+        <p id="nombreProfesor" class="mt-5 text-sm font-bold text-[#0047ff]">
+          Profesor: cargando...
+        </p>
+
+        <div class="mt-5 w-fit rounded-2xl bg-white px-5 py-4 shadow-sm">
+          <p class="text-[10px] font-bold uppercase tracking-wide text-[#0047ff]">
+            Costo de reserva
+          </p>
+          <p class="mt-1 text-sm font-extrabold text-[#081c44]">
+            1 Token
+          </p>
+        </div>
+
+        <a
+          id="linkVolver"
+          href="/profesores"
+          class="mt-10 inline-block text-[10px] font-bold uppercase text-[#0047ff] underline"
+        >
+          &lt; Volver
+        </a>
+      </section>
+
+      <section class="rounded-[26px] bg-white p-7 shadow-xl md:p-9">
+        <form id="formTurno" class="space-y-6">
+          <div id="agendaProfesor" class="space-y-6"></div>
+
+          <p id="mensajeTurno" class="hidden rounded-xl px-4 py-3 text-sm font-semibold"></p>
+
+          <p id="resumenTurno" class="hidden rounded-2xl bg-blue-50 px-5 py-4 text-sm font-bold text-[#0047ff]"></p>
+
+          <div class="flex justify-end pt-3">
+            <button
+              id="btnConfirmarTurno"
+              type="submit"
+              class="rounded-full bg-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Confirmar
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
+
+    type ProfesorBackend = {
+      id: number;
+      nombre: string;
+      disponibilidad: { dia: string; horarios: string[] }[];
+    };
+
+    const parametros = new URLSearchParams(window.location.search);
+    const profesorId = Number(parametros.get("id"));
+
+    const formTurno = document.getElementById("formTurno") as HTMLFormElement | null;
+    const agendaProfesor = document.getElementById("agendaProfesor") as HTMLElement | null;
+    const nombreProfesor = document.getElementById("nombreProfesor") as HTMLElement | null;
+    const mensajeTurno = document.getElementById("mensajeTurno") as HTMLParagraphElement | null;
+    const resumenTurno = document.getElementById("resumenTurno") as HTMLParagraphElement | null;
+    const btnConfirmarTurno = document.getElementById("btnConfirmarTurno") as HTMLButtonElement | null;
+    const linkVolver = document.getElementById("linkVolver") as HTMLAnchorElement | null;
+
+    let profesorActual: ProfesorBackend | null = null;
+
+    function mostrarMensaje(texto: string, tipo: "error" | "ok") {
+      if (!mensajeTurno) return;
+
+      mensajeTurno.textContent = texto;
+      mensajeTurno.classList.remove("hidden");
+
+      if (tipo === "error") {
+        mensajeTurno.className =
+          "rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600";
+      }
+
+      if (tipo === "ok") {
+        mensajeTurno.className =
+          "rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-600";
+      }
+    }
+
+    function crearAgenda(profesor: ProfesorBackend) {
+      agendaProfesor?.replaceChildren();
+
+      const disponibilidad = profesor.disponibilidad?.length
+        ? profesor.disponibilidad
+        : [{ dia: "A coordinar", horarios: ["15:00", "16:00", "17:00"] }];
+
+      disponibilidad.forEach((bloque) => {
+        const div = document.createElement("div");
+        div.innerHTML = `
+          <p class="mb-3 text-sm font-extrabold text-[#081c44]">${bloque.dia}</p>
+          <div class="flex flex-wrap gap-2">
+            ${bloque.horarios
+              .map(
+                (horario) => `
+                  <label class="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="turno"
+                      value="${bloque.dia} ${horario}"
+                      class="peer hidden"
+                      required
+                    />
+                    <span class="block rounded-full border border-[#081c44] px-4 py-1.5 text-[10px] font-bold text-[#081c44] transition peer-checked:bg-[#081c44] peer-checked:text-white hover:bg-[#081c44] hover:text-white">
+                      ${horario}
+                    </span>
+                  </label>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+
+        agendaProfesor?.appendChild(div);
+      });
+
+      formTurno?.querySelectorAll<HTMLInputElement>('input[name="turno"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+          if (!resumenTurno) return;
+          resumenTurno.textContent = `Horario seleccionado: ${radio.value}`;
+          resumenTurno.classList.remove("hidden");
+        });
+      });
+    }
+
+    async function cargarProfesor() {
+      if (!profesorId) {
+        mostrarMensaje("No encontramos el profesor solicitado.", "error");
+        btnConfirmarTurno?.setAttribute("disabled", "true");
+        return;
+      }
+
+      try {
+        const respuesta = await fetch(`${API_URL}/api/profesores`);
+        const data = await respuesta.json();
+
+        if (!respuesta.ok || !Array.isArray(data.profesores)) {
+          mostrarMensaje("No se pudieron cargar los horarios.", "error");
+          return;
+        }
+
+        profesorActual = data.profesores.find(
+          (item: ProfesorBackend) => Number(item.id) === profesorId
+        ) ?? null;
+
+        if (!profesorActual) {
+          mostrarMensaje("Este profesor todavia no esta aprobado o no existe.", "error");
+          return;
+        }
+
+        if (nombreProfesor) nombreProfesor.textContent = `Profesor: ${profesorActual.nombre}`;
+        if (linkVolver) linkVolver.href = `/profe?id=${profesorActual.id}`;
+        crearAgenda(profesorActual);
+      } catch (error) {
+        mostrarMensaje("No se pudo conectar con el servidor.", "error");
+      }
+    }
+
+    formTurno?.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      if (!profesorActual || !btnConfirmarTurno) return;
+
+      const formData = new FormData(formTurno);
+
+      btnConfirmarTurno.disabled = true;
+      btnConfirmarTurno.textContent = "Confirmando...";
+
+      try {
+        const respuesta = await fetch(`${API_URL}/api/reservas`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            profesor_id: profesorActual.id,
+            profesor_nombre: profesorActual.nombre,
+            turno: formData.get("turno"),
+            meet: "https://meet.google.com/demo-loop",
+          }),
+        });
+
+        const data = await respuesta.json();
+
+        if (!respuesta.ok) {
+          mostrarMensaje(data.mensaje || "No se pudo reservar el turno.", "error");
+          return;
+        }
+
+        const usuarioGuardado = localStorage.getItem("usuario");
+        if (usuarioGuardado) {
+          const usuario = JSON.parse(usuarioGuardado);
+          usuario.tokens = Math.max(Number(usuario.tokens ?? 1) - 1, 0);
+          localStorage.setItem("usuario", JSON.stringify(usuario));
+        }
+
+        mostrarMensaje("Turno reservado correctamente. Redirigiendo a notificaciones...", "ok");
+
+        setTimeout(() => {
+          window.location.href = "/mensajes";
+        }, 900);
+      } catch (error) {
+        mostrarMensaje("No se pudo conectar con el servidor.", "error");
+      } finally {
+        btnConfirmarTurno.disabled = false;
+        btnConfirmarTurno.textContent = "Confirmar";
+      }
+    });
+
+    cargarProfesor();
+  </script>
+</Layout>

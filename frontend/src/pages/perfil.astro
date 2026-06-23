@@ -129,7 +129,9 @@ import Layout from '../layouts/Layout.astro';
 
 <!-- SCRIPT INTEGRADO: RESERVAS Y DATOS DE USUARIO -->
   <script is:inline>
-    const API_URL = 'https://loop-backend-b1g8.onrender.com';
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
 
     const cargarDatosYReservas = async () => {
       // --- LÓGICA DE RESERVAS (Lo que ya tenías) ---
@@ -154,17 +156,33 @@ import Layout from '../layouts/Layout.astro';
           if (!reservaActiva) return;
 
           try {
-            await fetch(`${API_URL}/api/reservas/${reservaActiva.id}/cancelar`, {
+            const respuestaCancelar = await fetch(`${API_URL}/api/reservas/${reservaActiva.id}/cancelar`, {
               method: 'PATCH',
               headers: { 'Authorization': `Bearer ${token}` },
             });
+
+            const dataCancelar = await respuestaCancelar.json();
+
+            if (!respuestaCancelar.ok) {
+              alert(dataCancelar.mensaje || "No se pudo cancelar la reserva.");
+              return;
+            }
+
+            const usuarioGuardado = JSON.parse(localStorage.getItem("usuario") || "{}");
+            if (dataCancelar.tokens !== undefined) {
+              usuarioGuardado.tokens = dataCancelar.tokens;
+              localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
+              const saldoTokens = document.getElementById('saldo-tokens');
+              if (saldoTokens) saldoTokens.innerText = dataCancelar.tokens;
+            }
+
+            reservaActiva = null;
+            if(tarjetaReserva) tarjetaReserva.style.display = 'none';
+            if(estadoVacio) estadoVacio.style.display = 'block';
           } catch (error) {
             console.error("No se pudo cancelar la reserva", error);
+            alert("No se pudo conectar con el servidor para cancelar la reserva.");
           }
-
-          localStorage.removeItem('reservaDemo');
-          if(tarjetaReserva) tarjetaReserva.style.display = 'none';
-          if(estadoVacio) estadoVacio.style.display = 'block';
         };
       }
 
@@ -205,6 +223,7 @@ import Layout from '../layouts/Layout.astro';
             }
 
             localStorage.setItem('usuario', JSON.stringify(usuario));
+            aplicarPerfilEditado(usuario.perfil);
 
             if (postulacion && tarjetaPostulacion) {
               tarjetaPostulacion.classList.remove('hidden');
@@ -232,7 +251,7 @@ import Layout from '../layouts/Layout.astro';
             }
           }
 
-          const respuestaReserva = await fetch(`${API_URL}/api/reservas/activa`, {
+          const respuestaReserva = await fetch(`${API_URL}/api/reservas/proxima`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
@@ -243,13 +262,35 @@ import Layout from '../layouts/Layout.astro';
             if (reservaActiva) {
               if(tarjetaReserva) tarjetaReserva.style.display = 'flex';
               if(estadoVacio) estadoVacio.style.display = 'none';
-              if(tituloReserva) tituloReserva.textContent = `Clase con ${reservaActiva.profesorNombre}`;
-              if(detalleReserva) detalleReserva.textContent = reservaActiva.turno;
-              if(linkReservaPerfil instanceof HTMLAnchorElement) {
-                linkReservaPerfil.href = reservaActiva.meet || "/mensajes";
-                linkReservaPerfil.target = reservaActiva.meet ? "_blank" : "_self";
+
+              if (reservaActiva.estado === "EN_CONFLICTO") {
+                if(tituloReserva) tituloReserva.textContent = "Reserva en conflicto";
+                if(detalleReserva) detalleReserva.textContent = "Revisá el reporte desde Notificaciones.";
+                if(linkReservaPerfil instanceof HTMLAnchorElement) {
+                  linkReservaPerfil.href = "/mensajes";
+                  linkReservaPerfil.target = "_self";
+                  linkReservaPerfil.textContent = "VER REPORTE";
+                }
+                if(btnCancelar) {
+                  btnCancelar.style.display = "none";
+                }
+              } else {
+                const esProfesorDeLaReserva = reservaActiva.rolEnReserva === "profesor";
+                if(tituloReserva) {
+                  tituloReserva.textContent = esProfesorDeLaReserva
+                    ? `Clase para dictar: ${reservaActiva.profesorNombre}`
+                    : `Clase con ${reservaActiva.profesorNombre}`;
+                }
+                if(detalleReserva) detalleReserva.textContent = reservaActiva.turno;
+                if(linkReservaPerfil instanceof HTMLAnchorElement) {
+                  linkReservaPerfil.href = reservaActiva.meet || "/mensajes";
+                  linkReservaPerfil.target = reservaActiva.meet ? "_blank" : "_self";
+                  linkReservaPerfil.textContent = "VER LINK";
+                }
+                if(btnCancelar) {
+                  btnCancelar.style.display = esProfesorDeLaReserva ? "none" : "";
+                }
               }
-              localStorage.setItem('reservaDemo', JSON.stringify(reservaActiva));
             }
           }
         } catch (error) {
@@ -259,80 +300,51 @@ import Layout from '../layouts/Layout.astro';
       }
     };
     
-    function cargarPerfilEditado() {
-  const usuarioGuardado = localStorage.getItem("usuario");
-  const usuarioActual = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
-  const emailPerfil = String(usuarioActual?.email ?? "").trim().toLowerCase();
-  const identificador =
-    emailPerfil ||
-    usuarioActual?.id ||
-    usuarioActual?.nombre ||
-    "anonimo";
+    function aplicarPerfilEditado(perfil) {
+      const speechUsuario = document.getElementById("speech-usuario");
+      const fotoUsuario = document.getElementById("foto-usuario");
+      const inicialUsuario = document.getElementById("inicial-usuario");
+      const materiasUsuario = document.getElementById("materias-usuario");
+      const materias = Array.isArray(perfil?.materias) ? perfil.materias : [];
 
-  const perfilGuardado = localStorage.getItem(`perfilDemo:${identificador}`);
+      if (speechUsuario) {
+        speechUsuario.textContent =
+          perfil?.speech ||
+          "Usá Loop para aprender, reservar clases y compartir conocimientos con otros estudiantes.";
+      }
 
-  const speechUsuario = document.getElementById("speech-usuario");
-const fotoUsuario = document.getElementById("foto-usuario");
-const inicialUsuario = document.getElementById("inicial-usuario");
-const materiasUsuario = document.getElementById("materias-usuario");
+      if (fotoUsuario instanceof HTMLImageElement) {
+        if (perfil?.foto) {
+          fotoUsuario.src = perfil.foto;
+          fotoUsuario.classList.remove("hidden");
+          inicialUsuario?.classList.add("hidden");
+        } else {
+          fotoUsuario.src = "";
+          fotoUsuario.classList.add("hidden");
+          inicialUsuario?.classList.remove("hidden");
+        }
+      }
 
-  if (!perfilGuardado) {
-    if (speechUsuario) {
-      speechUsuario.textContent =
-        "Usá Loop para aprender, reservar clases y compartir conocimientos con otros estudiantes.";
+      if (materiasUsuario) {
+        materiasUsuario.innerHTML = materias.length
+          ? materias.map((materia) => `
+              <span class="rounded-full border border-[#0047ff] px-3 py-1 text-[10px] font-bold uppercase text-[#0047ff]">
+                ${materia}
+              </span>
+            `).join("")
+          : `
+              <span class="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase text-slate-400">
+                Sin materias cargadas
+              </span>
+            `;
+      }
     }
-
-    if (fotoUsuario instanceof HTMLImageElement) {
-      fotoUsuario.src = "";
-      fotoUsuario.classList.add("hidden");
-      inicialUsuario?.classList.remove("hidden");
-    }
-
-    if (materiasUsuario) {
-      materiasUsuario.innerHTML = `
-        <span class="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase text-slate-400">
-          Sin materias cargadas
-        </span>
-      `;
-    }
-
-    return;
-  }
-
-  const perfilDemo = JSON.parse(perfilGuardado);
-
-  if (speechUsuario) {
-    speechUsuario.textContent = perfilDemo.speech;
-  }
-
-  if (fotoUsuario instanceof HTMLImageElement && perfilDemo.foto) {
-  fotoUsuario.src = perfilDemo.foto;
-  fotoUsuario.classList.remove("hidden");
-  inicialUsuario?.classList.add("hidden");
-}
-
-  if (materiasUsuario) {
-    const materias = Array.isArray(perfilDemo.materias) ? perfilDemo.materias : [];
-
-    materiasUsuario.innerHTML = materias.length
-      ? materias.map((materia) => `
-          <span class="rounded-full border border-[#0047ff] px-3 py-1 text-[10px] font-bold uppercase text-[#0047ff]">
-            ${materia}
-          </span>
-        `).join("")
-      : `
-          <span class="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase text-slate-400">
-            Sin materias cargadas
-          </span>
-        `;
-  }
-  }
 
 cargarDatosYReservas();
-cargarPerfilEditado();
+aplicarPerfilEditado(JSON.parse(localStorage.getItem("usuario") || "{}")?.perfil);
 
 document.addEventListener("astro:page-load", () => {
   cargarDatosYReservas();
-  cargarPerfilEditado();
+  aplicarPerfilEditado(JSON.parse(localStorage.getItem("usuario") || "{}")?.perfil);
 });
   </script>

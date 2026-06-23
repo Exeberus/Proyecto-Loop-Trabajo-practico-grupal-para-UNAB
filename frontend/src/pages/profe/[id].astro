@@ -66,7 +66,11 @@ const disponibilidad = profesor.disponibilidad ?? [];
                   </span>
                 ))}
 
-                <span class="rounded-full border border-[#0047ff] px-3 py-1 text-[9px] font-bold uppercase text-[#0047ff]">
+                <span
+                  id="ratingProfesor"
+                  class="rounded-full border border-[#0047ff] px-3 py-1 text-[9px] font-bold uppercase text-[#0047ff]"
+                  data-profesor-id={profesor.id}
+                >
                   ★ {profesor.rating}
                 </span>
               </div>
@@ -81,7 +85,14 @@ const disponibilidad = profesor.disponibilidad ?? [];
               </p>
             </div>
 
-            <div class="flex justify-end">
+            <div class="flex flex-wrap justify-end gap-3">
+              <a
+                href={`/chat?user=${profesor.id}&name=${encodeURIComponent(profesor.nombre)}`}
+                class="rounded-full border border-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-[#0047ff] transition hover:bg-[#0047ff] hover:text-white"
+              >
+                Mensaje
+              </a>
+
               <a
                 href={`/generar-loop/${profesor.id}`}
                 class="rounded-full bg-[#0047ff] px-8 py-3 text-[10px] font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-blue-700"
@@ -146,4 +157,30 @@ const disponibilidad = profesor.disponibilidad ?? [];
       </div>
     </section>
   </main>
+
+  <script>
+    const API_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:5000"
+      : "https://loop-backend-b1g8.onrender.com";
+
+    const ratingProfesor = document.getElementById("ratingProfesor") as HTMLSpanElement | null;
+    const profesorId = ratingProfesor?.dataset.profesorId;
+
+    async function cargarRatingReal() {
+      if (!ratingProfesor || !profesorId) return;
+
+      try {
+        const respuesta = await fetch(`${API_URL}/api/ratings/${profesorId}`);
+        const data = await respuesta.json();
+
+        if (!respuesta.ok || !data.cantidad) return;
+
+        ratingProfesor.textContent = `★ ${data.promedio} (${data.cantidad})`;
+      } catch (error) {
+        console.error("No se pudo cargar el rating del profesor");
+      }
+    }
+
+    cargarRatingReal();
+  </script>
 </Layout>
